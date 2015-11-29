@@ -39,6 +39,8 @@ int main(int argc, char *argv[]) {
     }
 
 
+    printf("destImageVal(-10, -10) = %f", destImageVal(-10, -10));
+
     //Use LSST methods to extract coordinate information from the source
     //and destination images
     auto destFitsHeader = afwImage::readMetadata("./images/calexp-0289820_24.fits",1);
@@ -46,7 +48,8 @@ int main(int argc, char *argv[]) {
 
     auto srcFitsHeader = afwImage::readMetadata("./images/calexp-0288976_24.fits",1);
     auto srcWcs = afwImage::makeWcs(srcFitsHeader);
-  
+ 
+#ifdef TIME_TRANSFORM  
     //Time computing the coordinate transform for every pixel in the image
     //to show it takes a while
     clock_t t1 = clock();
@@ -60,7 +63,7 @@ int main(int argc, char *argv[]) {
     }
     clock_t t2 = clock();
     printf("Calculating coordinate transform for every point in the image took %f seconds\n", (float)(t2-t1)/CLOCKS_PER_SEC);
-
+#endif
 
     //Sometimes images may be shifted such that their (0, 0) pixel location does
     //not line up with the (0, 0) locaiton of their coordinate system.
@@ -90,5 +93,74 @@ int main(int argc, char *argv[]) {
     //that in the warped output image this star has roughly the same position as in 
     //the destination image and maximum intensity as in the source image. 
 
+
+    //Save coordinate transforms on a sparse 10x10grid
+    //hard coded for image size 2046 x 4094
+    double* destinationCoords = (double*)malloc(2*sizeof(double)*206*411);
+    double* sourceCoords = (double*)malloc(2*sizeof(double)*206*411);
+
+    int x = 0;
+    int y = 0;
+    for(double destRow = 0; destRow <= 4100; destRow+=10){
+        x = 0;
+        for(double destCol = 0; destCol <= 2050; destCol+=10){
+            //The next 3 lines are where the coordinate transform actually happens
+            afwGeom::Angle sky1, sky2;
+            destWcs->pixelToSky(destCol, destRow, sky1, sky2);
+            afwGeom::Point2D srcPosition = srcWcs->skyToPixel(sky1, sky2);
+            destinationCoords[(x+y*206)*2] = destCol;
+            destinationCoords[(x+y*206)*2 + 1] = destRow;
+            sourceCoords[(x+y*206)*2] = srcPosition[0];
+            sourceCoords[(x+y*206)*2 + 1] = srcPosition[1];
+            x++;
+        }
+        y++;
+    }
+
+    FILE * destCoordFile;
+    destCoordFile = fopen ("../LSST/warpRawData/destinationCoords.raw", "wb");
+    fwrite (destinationCoords , sizeof(double), 2*206*411, destCoordFile);
+    fclose (destCoordFile);
+
+    FILE * srcCoordFile;
+    srcCoordFile = fopen ("../LSST/warpRawData/sourceCoords.raw", "wb");
+    fwrite (sourceCoords , sizeof(double), 2*206*411, srcCoordFile);
+    fclose (srcCoordFile);
+
+
+//check written file
+    double* destinationCoords1 = (double*)malloc(2*sizeof(double)*206*411);
+    double* sourceCoords1 = (double*)malloc(2*sizeof(double)*206*411);
+
+    FILE * pFile;
+    long lSize;
+    char * buffer;
+    size_t result;
+
+    destCoordFile = fopen ( "../LSST/warpRawData/destinationCoords.raw" , "rb" );
+    if (destCoordFile==NULL) {fputs ("File error",stderr); exit (1);}
+    srcCoordFile = fopen ( "../LSST/warpRawData/sourceCoords.raw" , "rb" );
+    if (destCoordFile==NULL) {fputs ("File error",stderr); exit (1);}
+
+    // copy the file into the buffer:
+    fread (destinationCoords1,sizeof(double),2*206*411,destCoordFile);
+    fread (sourceCoords1,sizeof(double),2*206*411,srcCoordFile);
+
+    printf("destinationCoords1(0, 0) = (%f, %f)\n", destinationCoords1[0], destinationCoords1[1]);
+    printf("sourceCoords1(0, 0) = (%f, %f)\n", sourceCoords1[0], sourceCoords1[1]);
+
+    printf("destination star = (%f, %f)\n", destinationCoords1[(24+7*206)*2], destinationCoords1[(24+7*206)*2 + 1]);
+    printf("source star = (%f, %f)\n", sourceCoords1[(24+7*206)*2], sourceCoords1[(24+7*206)*2 + 1]);
+
+    // terminate
+    fclose (destCoordFile);
+    fclose (srcCoordFile);
+
+
+
+    free(destinationCoords);
+    free(sourceCoords);
+    free(destinationCoords1);
+    free(sourceCoords1);
 }
 
