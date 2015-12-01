@@ -31,9 +31,6 @@ local terra getInfoFromLSST(inputImg:&float, inputVar:&float, inputMask:&uint16,
 end
 
 
-
-
-
 local function zerofloatVec(vectorWidth)
 	local zeros = {}
 	for i=1,vectorWidth do zeros[i] = `0.f end
@@ -45,6 +42,97 @@ local function zeroUInt16Vec(vectorWidth)
 	for i=1,vectorWidth do zeros[i] = `0 end
 	return `vector(zeros)
 end
+
+local function gen_convolveOneVec_original(x, y, inputImg, inputVar, inputMask,
+							outputImg, outputVar, outputMask,
+                    		imageWidth, imageHeight, kernelArray, 
+                    		funcParams, numberOfBasisKernels,
+							kernelWidth, kernelHeight, numberOfFuncCoef, zeroVec, getBitMask)
+	local returnQuote = {}
+    local curQuote
+
+	local curKernelVal = symbol()
+	local curKernelValTemp = symbol()
+	local curImOut = symbol()
+	local curVarOut= symbol()
+	local curMaskOut = symbol()
+	local curNorm = symbol()
+		
+	curQuote = quote
+		var [curKernelVal] : vector(float,vectorWidth)
+		var [curKernelValTemp] : float[vectorWidth]
+
+		var [curImOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+--				var curImOut : &vector(float,vectorWidth) = [&vector(float,vectorWidth)](&outputImg[y*imageWidth + x])
+		var [curVarOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+		var [curMaskOut] : vector(uint16, vectorWidth) = [zeroUInt16Vec(vectorWidth)]
+
+		var [curNorm] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+--				var curImOutVec = @[&vector(float,4)](&outputImg[y*imageWidth + x])
+	end
+	table.insert(returnQuote, curQuote)
+
+
+	for j = -luaBoundingBox, luaBoundingBox do
+		for i = -luaBoundingBox, luaBoundingBox do
+        	for k = 0, vectorWidth - 1 do
+        		curQuote = quote
+						curKernelValTemp[k] = kernelArray[0][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
+        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
+        				+ funcParams[0*numberOfFuncCoef + 3]*x*x + funcParams[0*numberOfFuncCoef + 4]*x*y
+        				+ funcParams[0*numberOfFuncCoef + 5]*y*y + funcParams[0*numberOfFuncCoef + 6]*x*x*x
+        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
+        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
+        		end
+				table.insert(returnQuote, curQuote)
+        		for l = 1, luaNumberOfBasisKernels-1 do 
+        			curQuote = quote
+        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
+        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
+        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
+        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
+        				+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
+        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
+        			end
+    				table.insert(returnQuote, curQuote)
+        		end
+        	end
+        	curQuote = quote
+	            curKernelVal = @[&vector(float,vectorWidth)](&curKernelValTemp[0])
+
+	            var curImInVec = @[&vector(float,vectorWidth)](&inputImg[(y+j)*imageWidth + x+i])
+	            var curVarInVec = @[&vector(float,vectorWidth)](&inputVar[(y+j)*imageWidth + x+i])
+	            var curMaskInVec = @[&vector(uint16,vectorWidth)](&inputMask[(y+j)*imageWidth + x+i])
+
+
+	            curImOut = curImOut + curImInVec*curKernelVal; 
+	            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+
+	            var bitMask : vector(uint16, vectorWidth) = getBitMask(curKernelVal, zeroVec)
+	            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+
+	            curNorm = curNorm + curKernelVal;
+	        end
+	        table.insert(returnQuote, curQuote)
+
+    	end
+    end
+    curQuote = quote
+		curImOut = curImOut/curNorm
+		curVarOut = curVarOut/(curNorm*curNorm)
+	end
+	table.insert(returnQuote, curQuote)
+	for i = 0, vectorWidth-1 do
+		curQuote = quote
+    		outputImg[y*imageWidth + x+i] = curImOut[i]	
+		    outputVar[y*imageWidth + x+i] = curVarOut[i]
+			outputMask[y*imageWidth + x+i] = curMaskOut[i]
+		end
+		table.insert(returnQuote, curQuote)
+	end
+
+end
+
 
 
 local function genGetBitMask(vectorWidth)
@@ -78,87 +166,11 @@ local terra getInfoFromLSST(inputImg:&float, inputVar:&float, inputMask:&uint16,
 			var zeroVec : vector(float, vectorWidth) = [zerofloatVec(vectorWidth)]
 			for y = boundingBox, imageHeight-boundingBox do
 				for x = boundingBox, (imageWidth-boundingBox), vectorWidth do
-	 				escape
---	 					if(method == "original") then
-	 					if(true) then
-	 						local curKernelVal = symbol()
-	 						local curKernelValTemp = symbol()
-	 						local curImOut = symbol()
-	 						local curVarOut= symbol()
-	 						local curMaskOut = symbol()
-	 						local curNorm = symbol()
-		 					emit quote
-				 				var [curKernelVal] : vector(float,vectorWidth)
-								var [curKernelValTemp] : float[vectorWidth]
-
-								var [curImOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
-				--				var curImOut : &vector(float,vectorWidth) = [&vector(float,vectorWidth)](&outputImg[y*imageWidth + x])
-								var [curVarOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
-								var [curMaskOut] : vector(uint16, vectorWidth) = [zeroUInt16Vec(vectorWidth)]
-
-								var [curNorm] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
-				--				var curImOutVec = @[&vector(float,4)](&outputImg[y*imageWidth + x])
-							end
---							for j = -boundingBox, boundingBox do
---						        for i = -boundingBox, boundingBox do
-							for j = -luaBoundingBox, luaBoundingBox do
-								--emit quote
-						        for i = -luaBoundingBox, luaBoundingBox + 1 do
-						        --escape
-						        	for k = 0, vectorWidth - 1 do
-						        		emit quote
-       										curKernelValTemp[k] = kernelArray[0][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
-						        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
-						        				+ funcParams[0*numberOfFuncCoef + 3]*x*x + funcParams[0*numberOfFuncCoef + 4]*x*y
-						        				+ funcParams[0*numberOfFuncCoef + 5]*y*y + funcParams[0*numberOfFuncCoef + 6]*x*x*x
-						        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
-						        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
-						        		end
---						        		for l = 1, numberOfBasisKernels-1 do 
-						        		for l = 1, luaNumberOfBasisKernels-1 do 
-						        			emit quote
-						        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
-						        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
-						        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
-						        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
-						        				+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
-						        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
-						        			end
-						        		end
-						        	end
-						        	emit quote
-							            curKernelVal = @[&vector(float,vectorWidth)](&curKernelValTemp[0])
-
-							            var curImInVec = @[&vector(float,vectorWidth)](&inputImg[(y+j)*imageWidth + x+i])
-							            var curVarInVec = @[&vector(float,vectorWidth)](&inputVar[(y+j)*imageWidth + x+i])
-							            var curMaskInVec = @[&vector(uint16,vectorWidth)](&inputMask[(y+j)*imageWidth + x+i])
-
-
-							            curImOut = curImOut + curImInVec*curKernelVal; 
-							            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
-
-							            var bitMask : vector(uint16, vectorWidth) = getBitMask(curKernelVal, zeroVec)
-							            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
-
-							            curNorm = curNorm + curKernelVal;
-							        end
-						        --end
-						    	end
-						        --end
-						    end
-						    emit quote
-					    		curImOut = curImOut/curNorm
-					    		curVarOut = curVarOut/(curNorm*curNorm)
-							end
-							for i = 0, vectorWidth-1 do
-					    		emit quote
-						    		outputImg[y*imageWidth + x+i] = curImOut[i]	
-								    outputVar[y*imageWidth + x+i] = curVarOut[i]
-					    			outputMask[y*imageWidth + x+i] = curMaskOut[i]
-					    		end
-					    	end
-					    end				
-					end
+	 				[gen_convolveOneVec_original(x, y, inputImg, inputVar, inputMask,
+							outputImg, outputVar, outputMask,
+                    		imageWidth, imageHeight, kernelArray, 
+                    		funcParams, numberOfBasisKernels,
+							kernelWidth, kernelHeight, numberOfFuncCoef, zeroVec, getBitMask)]	 						
 				end
 			end
 
