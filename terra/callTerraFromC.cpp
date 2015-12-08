@@ -60,28 +60,53 @@ float kernel5(int i, int j){
                     /(2*sigmaY5*sigmaY5)) / (sqrt(2*M_PI)*sigmaY5));
 }
 
-int main(int argc, char *argv[]) {
-    float** kernelArray = (float**)malloc(5*sizeof(float*));
-    float (**kernelFuncs)(int, int) = (float (**) (int, int))malloc(5*
-                                            sizeof(float (*)(int, int)));
-    kernelFuncs[0] = &kernel1;
-    kernelFuncs[1] = &kernel2;
-    kernelFuncs[2] = &kernel3;
-    kernelFuncs[3] = &kernel4;
-    kernelFuncs[4] = &kernel5;
 
-    for(int ker = 0; ker < 5; ker++){
-        float * curKernel = (float*)malloc(25*sizeof(float));
-        for(int j = 0; j < 5; j++){
-            for(int i = 0; i < 5; i++){
-                curKernel[j*5+i] = kernelFuncs[ker](i-2, j-2);
+float kernel(int i, int j, float sigmaX, float sigmaY, float theta){
+
+    return (exp(-((i*cos(theta) +j*sin(theta))*(i*cos(theta) +j*sin(theta)))
+                    /(2*sigmaX*sigmaX)) / (sqrt(2*M_PI)*sigmaX))
+                    *(exp(-((j*cos(theta) - i*sin(theta))*(j*cos(theta) - i*sin(theta)))
+                    /(2*sigmaY*sigmaY)) / (sqrt(2*M_PI)*sigmaY));
+}
+
+
+int main(int argc, char *argv[]) {
+    int numberOfBasisKernels = 5;
+    int numberOfFuncCoef = 10;
+    int kernelSize = 5; //kernel width and height
+
+    float** kernelArray = (float**)malloc(5*sizeof(float*));
+
+//    float (**kernelFuncs)(int, int) = (float (**) (int, int))malloc(5*
+//                                            sizeof(float (*)(int, int)));
+//    kernelFuncs[0] = &kernel1;
+//    kernelFuncs[1] = &kernel2;
+//    kernelFuncs[2] = &kernel3;
+//    kernelFuncs[3] = &kernel4;
+//    kernelFuncs[4] = &kernel5;
+//
+//    for(int ker = 0; ker < 5; ker++){
+//        float * curKernel = (float*)malloc(25*sizeof(float));
+//        for(int j = 0; j < 5; j++){
+//            for(int i = 0; i < 5; i++){
+//                curKernel[j*5+i] = kernelFuncs[ker](i-2, j-2);
+//            }
+//        }
+//        kernelArray[ker] = curKernel;
+//    }
+    int boundingBox = (kernelSize - 1)/2;
+    for(int ker = 0; ker < numberOfBasisKernels; ker++){
+        float * curKernel = (float*)malloc(kernelSize*kernelSize*sizeof(float));
+        for(int j = 0; j < kernelSize; j++){
+            for(int i = 0; i < kernelSize; i++){
+                curKernel[j*kernelSize+i] = kernel(i-boundingBox , j-boundingBox,
+                                                .12f*(ker+1), .34f*(ker+1), .56f*(ker+1));
             }
         }
         kernelArray[ker] = curKernel;
     }
 
-    int numberOfBasisKernels = 5;
-    int numberOfFuncCoef = 10;
+
     float* funcParams = (float*)malloc(numberOfBasisKernels*numberOfFuncCoef*sizeof(float));
     for(int i = 0; i < numberOfBasisKernels; i++){
         for(int j = 0; j < numberOfFuncCoef; j++){
@@ -89,11 +114,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int kernelWidth = 5;
-    int kernelHeight = 5;
-//    for(int i = 0; i < 6; i++){
-//        funcParams[i] = (float)i;
-//    }
 
 
     int imageWidth = 2048;
@@ -125,9 +145,18 @@ int main(int argc, char *argv[]) {
 
     terraFuncNameInC(inputImg, inputVar, inputMask, outputImg, outputVar, outputMask,
                     imageWidth, imageHeight, kernelArray, funcParams, numberOfBasisKernels,         
-                    kernelWidth, kernelHeight, numberOfFuncCoef);
+                    kernelSize, kernelSize, numberOfFuncCoef);
 
-    free(funcParams);
+    for(int ker = 0; ker < numberOfBasisKernels; ker++){
+        free(kernelArray[ker]);
+    }
     free(kernelArray);
+    free(funcParams);
+    free(inputImg);
+    free(inputVar);
+    free(inputMask);
+    free(outputImg);
+    free(outputVar);
+    free(outputMask);
 }
 
