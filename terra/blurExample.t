@@ -7,10 +7,17 @@ local C = terralib.includecstring [[
     #include <unistd.h>
 ]]
 
-local boundingBox = 5
+local boundingBox = 2
 local interpDist = 32
-local minKernelVal = 0.0000000000000000000000000001
-local kernelScaleFactor = 1
+local minKernelVal = 10--0.000000000000000000000000000001
+local minRandKernelVal = 0.000000000000000000000000000001
+local kernelScaleFactor = .001
+local returnZeroForSmallKernel = false
+
+--only one of these should symmetries should be true
+local giveKernelsYSymmetry = false
+local giveKernelsXandYSymmetry = false
+
 --local terra loadFitsImage()
 --    var im = lsst::afw::image::MaskedImage<float>("./images/calexp-004207-g3-0123.fits");
 --    var width = im.getWidth(), height = im.getHeight();
@@ -353,54 +360,89 @@ end
 
 
 --double precision kernels
-local terra kernel1Double(x:float, y:float)
+local terra kernel1Double(x:double, y:double)
     var sigmaX1 : float = 2.0f;
     var sigmaY1 : float = 2.0f;
     var theta1 : float = 0.0f; --//rotation of sigmaX axis
-    return (C.exp(-((x*C.cos(theta1) +y*C.sin(theta1))*(x*C.cos(theta1) +y*C.sin(theta1)))
+    var returnVal = (C.exp(-((x*C.cos(theta1) +y*C.sin(theta1))*(x*C.cos(theta1) +y*C.sin(theta1)))
                     /(2*sigmaX1*sigmaX1)) / (C.sqrt(2*C.M_PI)*sigmaX1))
                     *(C.exp(-((y*C.cos(theta1) - x*C.sin(theta1))*(y*C.cos(theta1) - x*C.sin(theta1)))
                     /(2*sigmaY1*sigmaY1)) / (C.sqrt(2*C.M_PI)*sigmaY1));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return [double](C.rand()) / [double](C.RAND_MAX);
+   	end
 end
 
-local terra kernel2Double(x:float, y:float)
+local terra kernel2Double(x:double, y:double)
     var sigmaX2 : float = 0.5f;
     var sigmaY2 : float = 4.0f;
     var theta2 : float = 0.0f; --//rotation of sigmaX axis
-    return (C.exp(-((x*C.cos(theta2) +y*C.sin(theta2))*(x*C.cos(theta2) +y*C.sin(theta2)))
+    var returnVal = (C.exp(-((x*C.cos(theta2) +y*C.sin(theta2))*(x*C.cos(theta2) +y*C.sin(theta2)))
                     /(2*sigmaX2*sigmaX2)) / (C.sqrt(2*C.M_PI)*sigmaX2))
                     *(C.exp(-((y*C.cos(theta2) - x*C.sin(theta2))*(y*C.cos(theta2) - x*C.sin(theta2)))
                     /(2*sigmaY2*sigmaY2)) / (C.sqrt(2*C.M_PI)*sigmaY2));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return [double](C.rand()) / [double](C.RAND_MAX);
+   	end
 end
 
-local terra kernel3Double(x:float, y:float)
+local terra kernel3Double(x:double, y:double)
     var sigmaX3 : float = 0.5f;
     var sigmaY3 : float = 4.0f;
     var theta3 : float = 3.14159f/4; --//rotation of sigmaX axis
-    return (C.exp(-((x*C.cos(theta3) +y*C.sin(theta3))*(x*C.cos(theta3) +y*C.sin(theta3)))
+    var returnVal = (C.exp(-((x*C.cos(theta3) +y*C.sin(theta3))*(x*C.cos(theta3) +y*C.sin(theta3)))
                     /(2*sigmaX3*sigmaX3)) / (C.sqrt(2*C.M_PI)*sigmaX3))
                     *(C.exp(-((y*C.cos(theta3) - x*C.sin(theta3))*(y*C.cos(theta3) - x*C.sin(theta3)))
                     /(2*sigmaY3*sigmaY3)) / (C.sqrt(2*C.M_PI)*sigmaY3));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return [double](C.rand()) / [double](C.RAND_MAX);
+   	end
 end
 
-local terra kernel4Double(x:float, y:float)
+local terra kernel4Double(x:double, y:double)
     var sigmaX4 : float = 0.5f;
     var sigmaY4 : float = 4.0f;
     var theta4 : float = 3.14159f/2; --//rotation of sigmaX axis
-    return (C.exp(-((x*C.cos(theta4) +y*C.sin(theta4))*(x*C.cos(theta4) +y*C.sin(theta4)))
+    var returnVal = (C.exp(-((x*C.cos(theta4) +y*C.sin(theta4))*(x*C.cos(theta4) +y*C.sin(theta4)))
                     /(2*sigmaX4*sigmaX4)) / (C.sqrt(2*C.M_PI)*sigmaX4))
                     *(C.exp(-((y*C.cos(theta4) - x*C.sin(theta4))*(y*C.cos(theta4) - x*C.sin(theta4)))
                     /(2*sigmaY4*sigmaY4)) / (C.sqrt(2*C.M_PI)*sigmaY4));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return [double](C.rand()) / [double](C.RAND_MAX);
+   	end
 end
 
-local terra kernel5Double(x:float, y:float)
+local terra kernel5Double(x:double, y:double)
     var sigmaX5 : float = 4.0f;
     var sigmaY5 : float = 4.0f;
     var theta5 : float = 0.0; --//rotation of sigmaX axis
-    return (C.exp(-((x*C.cos(theta5) +y*C.sin(theta5))*(x*C.cos(theta5) +y*C.sin(theta5)))
+    var returnVal = (C.exp(-((x*C.cos(theta5) +y*C.sin(theta5))*(x*C.cos(theta5) +y*C.sin(theta5)))
                     /(2*sigmaX5*sigmaX5)) / (C.sqrt(2*C.M_PI)*sigmaX5))
                     *(C.exp(-((y*C.cos(theta5) - x*C.sin(theta5))*(y*C.cos(theta5) - x*C.sin(theta5)))
                     /(2*sigmaY5*sigmaY5)) / (C.sqrt(2*C.M_PI)*sigmaY5));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return [double](C.rand()) / [double](C.RAND_MAX);
+   	end
 end
 
 
@@ -419,8 +461,16 @@ local terra kernel1(x:float, y:float)
                     /(2*sigmaY1*sigmaY1)) / (C.sqrtf(2*C.M_PI)*sigmaY1));
     if(returnVal > minKernelVal) then
     	return returnVal
-   	else
+   	elseif(returnZeroForSmallKernel) then
    		return 0.0
+   	else
+   		var returnRand = [float](C.rand()) / [float](C.RAND_MAX);
+   		if(returnRand > minRandKernelVal) then
+   			return returnRand
+   		else
+   			return 23.14234f
+   		end
+
    	end
 end
 
@@ -435,8 +485,16 @@ local terra kernel2(x:float, y:float)
                     /(2*sigmaY2*sigmaY2)) / (C.sqrtf(2*C.M_PI)*sigmaY2));
     if(returnVal > minKernelVal) then
     	return returnVal
-   	else
+   	elseif(returnZeroForSmallKernel) then
    		return 0.0
+   	else
+   		var returnRand = [float](C.rand()) / [float](C.RAND_MAX);
+   		if(returnRand > minRandKernelVal) then
+   			return returnRand
+   		else
+   			return 23.14234f
+   		end
+
    	end
 end
 
@@ -451,8 +509,16 @@ local terra kernel3(x:float, y:float)
                     /(2*sigmaY3*sigmaY3)) / (C.sqrtf(2*C.M_PI)*sigmaY3));
     if(returnVal > minKernelVal) then
     	return returnVal
-   	else
+   	elseif(returnZeroForSmallKernel) then
    		return 0.0
+   	else
+   		var returnRand = [float](C.rand()) / [float](C.RAND_MAX);
+   		if(returnRand > minRandKernelVal) then
+   			return returnRand
+   		else
+   			return 23.14234f
+   		end
+
    	end
 end
 
@@ -467,8 +533,16 @@ local terra kernel4(x:float, y:float)
                     /(2*sigmaY4*sigmaY4)) / (C.sqrtf(2*C.M_PI)*sigmaY4));
     if(returnVal > minKernelVal) then
     	return returnVal
-   	else
+   	elseif(returnZeroForSmallKernel) then
    		return 0.0
+   	else
+   		var returnRand = [float](C.rand()) / [float](C.RAND_MAX);
+   		if(returnRand > minRandKernelVal) then
+   			return returnRand
+   		else
+   			return 23.14234f
+   		end
+
    	end
 end
 
@@ -483,32 +557,105 @@ local terra kernel5(x:float, y:float)
                     /(2*sigmaY5*sigmaY5)) / (C.sqrtf(2*C.M_PI)*sigmaY5));
     if(returnVal > minKernelVal) then
     	return returnVal
-   	else
+   	elseif(returnZeroForSmallKernel) then
    		return 0.0
+   	else
+   		var returnRand = [float](C.rand()) / [float](C.RAND_MAX);
+   		if(returnRand > minRandKernelVal) then
+   			return returnRand
+   		else
+   			return 23.14234f
+   		end
+
    	end
 end
 
 
 --test with kernels that are more orthogonal
 --local terra kernel1(x:float, y:float)
---	return C.fabs(C.cos(x+y)/10.0f)
+--	var returnVal = kernelScaleFactor * C.fabs(C.cos(x+y)/10.0f)
+--    if(returnVal > minKernelVal) then
+--    	return returnVal
+--   	elseif(returnZeroForSmallKernel) then
+--   		return 0.0
+--   	else
+--   		var returnRand = kernelScaleFactor * [float](C.rand()) / [float](C.RAND_MAX);
+--   		if(returnRand > minRandKernelVal) then
+--   			return returnRand
+--   		else
+--   			return 23.14234f
+--   		end
+--
+--   	end
 --end
 --
 --local terra kernel2(x:float, y:float)
---	return C.fabs(C.sin(x+y)/50.0f)
+--	var returnVal = kernelScaleFactor * C.fabs(C.sin(x+y)/50.0f)
+--    if(returnVal > minKernelVal) then
+--    	return returnVal
+--   	elseif(returnZeroForSmallKernel) then
+--   		return 0.0
+--   	else
+--   		var returnRand = kernelScaleFactor * [float](C.rand()) / [float](C.RAND_MAX);
+--   		if(returnRand > minRandKernelVal) then
+--   			return returnRand
+--   		else
+--   			return 23.14234f
+--   		end
+--
+--   	end
 --end
 --
 --local terra kernel3(x:float, y:float)
---	return C.fabs(C.sin(7*x*y)/30.0f)
+--	var returnVal = kernelScaleFactor * C.fabs(C.sin(7*x*y)/30.0f)
+--    if(returnVal > minKernelVal) then
+--    	return returnVal
+--   	elseif(returnZeroForSmallKernel) then
+--   		return 0.0
+--   	else
+--   		var returnRand = kernelScaleFactor * [float](C.rand()) / [float](C.RAND_MAX);
+--   		if(returnRand > minRandKernelVal) then
+--   			return returnRand
+--   		else
+--   			return 23.14234f
+--   		end
+--
+--   	end
 --end
 --
 --local terra kernel4(x:float, y:float)
---	return C.fabs(C.cos(x*y)/20.0f)
+--	var returnVal = kernelScaleFactor * C.fabs(C.cos(x*y)/20.0f)
+--    if(returnVal > minKernelVal) then
+--    	return returnVal
+--   	elseif(returnZeroForSmallKernel) then
+--   		return 0.0
+--   	else
+--   		var returnRand = kernelScaleFactor * [float](C.rand()) / [float](C.RAND_MAX);
+--   		if(returnRand > minRandKernelVal) then
+--   			return returnRand
+--   		else
+--   			return 23.14234f
+--   		end
+--
+--   	end
 --end
 --
 --
 --local terra kernel5(x:float, y:float)
---	return C.fabs(C.cos(5*x+11*y)/80.0f)
+--	var returnVal = kernelScaleFactor * C.fabs(C.cos(5*x+11*y)/80.0f)
+--    if(returnVal > minKernelVal) then
+--    	return returnVal
+--   	elseif(returnZeroForSmallKernel) then
+--   		return 0.0
+--   	else
+--   		var returnRand = kernelScaleFactor * [float](C.rand()) / [float](C.RAND_MAX);
+--   		if(returnRand > minRandKernelVal) then
+--   			return returnRand
+--   		else
+--   			return 23.14234f
+--   		end
+--
+--   	end
 --end
 
 
@@ -516,10 +663,25 @@ local function luaKernel1(x, y)
     local sigmaX1 = 2.0;
     local sigmaY1 = 2.0;
     local theta1 = 0.0; --//rotation of sigmaX axis
-    return (math.exp(-((x*math.cos(theta1) +y*math.sin(theta1))*(x*math.cos(theta1) +y*math.sin(theta1)))
+    local returnVal = 
+
+
+
+
+
+
+
+    (math.exp(-((x*math.cos(theta1) +y*math.sin(theta1))*(x*math.cos(theta1) +y*math.sin(theta1)))
                     /(2*sigmaX1*sigmaX1)) / (math.sqrt(2*math.pi)*sigmaX1))
                     *(math.exp(-((y*math.cos(theta1) - x*math.sin(theta1))*(y*math.cos(theta1) - x*math.sin(theta1)))
                     /(2*sigmaY1*sigmaY1)) / (math.sqrt(2*math.pi)*sigmaY1));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return 1.234
+   	end
 end
 
 
@@ -528,30 +690,75 @@ local function luaKernel2(x, y)
     local sigmaX2 = 0.5;
     local sigmaY2 = 4.0;
     local theta2 = 0.0; --//rotation of sigmaX axis
-    return (math.exp(-((x*math.cos(theta2) +y*math.sin(theta2))*(x*math.cos(theta2) +y*math.sin(theta2)))
+    local returnVal = 
+
+
+
+
+
+
+
+    (math.exp(-((x*math.cos(theta2) +y*math.sin(theta2))*(x*math.cos(theta2) +y*math.sin(theta2)))
                     /(2*sigmaX2*sigmaX2)) / (math.sqrt(2*math.pi)*sigmaX2))
                     *(math.exp(-((y*math.cos(theta2) - x*math.sin(theta2))*(y*math.cos(theta2) - x*math.sin(theta2)))
                     /(2*sigmaY2*sigmaY2)) / (math.sqrt(2*math.pi)*sigmaY2));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return 1.234
+   	end
 end
 
 local function luaKernel3(x, y)
     local sigmaX3 = 0.5;
     local sigmaY3 = 4.0;
     local theta3 = 3.14159/4; --//rotation of sigmaX axis
-    return (math.exp(-((x*math.cos(theta3) +y*math.sin(theta3))*(x*math.cos(theta3) +y*math.sin(theta3)))
+    local returnVal = 
+
+
+
+
+
+
+
+    (math.exp(-((x*math.cos(theta3) +y*math.sin(theta3))*(x*math.cos(theta3) +y*math.sin(theta3)))
                     /(2*sigmaX3*sigmaX3)) / (math.sqrt(2*math.pi)*sigmaX3))
                     *(math.exp(-((y*math.cos(theta3) - x*math.sin(theta3))*(y*math.cos(theta3) - x*math.sin(theta3)))
                     /(2*sigmaY3*sigmaY3)) / (math.sqrt(2*math.pi)*sigmaY3));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return 1.234
+   	end
 end
 
 local function luaKernel4(x, y)
     local sigmaX4 = 0.5;
     local sigmaY4 = 4.0;
     local theta4 = 3.14159/2; --//rotation of sigmaX axis
-    return (math.exp(-((x*math.cos(theta4) +y*math.sin(theta4))*(x*math.cos(theta4) +y*math.sin(theta4)))
+    local returnVal = 
+
+
+
+
+
+
+
+    (math.exp(-((x*math.cos(theta4) +y*math.sin(theta4))*(x*math.cos(theta4) +y*math.sin(theta4)))
                     /(2*sigmaX4*sigmaX4)) / (math.sqrt(2*math.pi)*sigmaX4))
                     *(math.exp(-((y*math.cos(theta4) - x*math.sin(theta4))*(y*math.cos(theta4) - x*math.sin(theta4)))
                     /(2*sigmaY4*sigmaY4)) / (math.sqrt(2*math.pi)*sigmaY4));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return 1.234
+   	end
 end
 
 
@@ -559,10 +766,25 @@ local function luaKernel5(x, y)
     local sigmaX5 = 4.0;
     local sigmaY5 = 4.0;
     local theta5 = 0.0; --//rotation of sigmaX axis
-    return (math.exp(-((x*math.cos(theta5) +y*math.sin(theta5))*(x*math.cos(theta5) +y*math.sin(theta5)))
+    local returnVal = 
+
+
+
+
+
+
+
+    (math.exp(-((x*math.cos(theta5) +y*math.sin(theta5))*(x*math.cos(theta5) +y*math.sin(theta5)))
                     /(2*sigmaX5*sigmaX5)) / (math.sqrt(2*math.pi)*sigmaX5))
                     *(math.exp(-((y*math.cos(theta5) - x*math.sin(theta5))*(y*math.cos(theta5) - x*math.sin(theta5)))
                     /(2*sigmaY5*sigmaY5)) / (math.sqrt(2*math.pi)*sigmaY5));
+    if(returnVal > minKernelVal) then
+    	return returnVal
+   	elseif(returnZeroForSmallKernel) then
+   		return 0.0
+   	else
+   		return 1.234
+   	end
 end
 
 
@@ -729,7 +951,7 @@ end
 
 
 
-local function blurImageLinComboNoUnroll()
+local function blurImageLinComboKernelValsArrayAccessed()
 	local terra terraBlur()
 		var width : int = 2048
 		var height : int = 1489
@@ -807,7 +1029,7 @@ local function blurImageLinComboNoUnroll()
 			C.printf("\n")
 		end
 
-		C.printf("\n\nImage only, no unroll, lin combo %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
+		C.printf("\n\nImage only, kernel Array Accessed, lin combo %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
 		C.printf("output[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", output[boundingBox*width + boundingBox],  (t2-t1)/1000.0f)
 		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
 
@@ -943,7 +1165,7 @@ local function blurVarianceLinCombo()
 
 
 
-		C.printf("\n\nVariance only, no unroll, lin combo %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
+		C.printf("\n\nVariance only, kernel Array Accessed, lin combo %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
 		C.printf("output[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", output[boundingBox*width + boundingBox],  (t2-t1)/1000.0f)
 		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
 
@@ -1951,187 +2173,441 @@ end
 
 --playing around with aligning arrays to cache lines
 --deal with image, mask, and variance planes
-local terra blurMaskedImageLinComboNoUnroll()
---	var boundingBox : int = 2
-	var width : int = 2048
-	var height : int = 1489
+local function luaBlurMaskedImageLinComboKernelValsArrayAccessed(_boundingBox)
+	local terra blurMaskedImageLinComboKernelValsArrayAccessed()
+	--	var _boundingBox : int = 2
+		var width : int = 2048
+		var height : int = 1489
 
 
---	var inputIm : &float
---	inputIm = [&float](C.malloc(sizeof(float)*width*height))
---	var inputVar : &float
---	inputVar = [&float](C.malloc(sizeof(float)*width*height))
---	var inputMask : &uint16
---	inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
---
---	var outputIm : &float
---	outputIm = [&float](C.malloc(sizeof(float)*width*height))
---	var outputVar : &float
---	outputVar = [&float](C.malloc(sizeof(float)*width*height))
---	var outputMask : &uint16
---	outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+		var inputIm : &float
+		inputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var inputVar : &float
+		inputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var inputMask : &uint16
+		inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	var tempPointer : &opaque
+		var outputIm : &float
+		outputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var outputVar : &float
+		outputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var outputMask : &uint16
+		outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	var inputIm : &float
-	C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
-	inputIm = [&float](tempPointer)
+--		var tempPointer : &opaque
+--	
+--		var inputIm : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		inputIm = [&float](tempPointer)
+--	
+--		var inputVar : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		inputVar = [&float](tempPointer)
+--	
+--		var inputMask : &uint16
+--		C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
+--		inputMask = [&uint16](tempPointer)
+--	
+--	
+--	
+--		var outputIm : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		outputIm = [&float](tempPointer)
+--	
+--		var outputVar : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		outputVar = [&float](tempPointer)
+--	
+--		var outputMask : &uint16
+--		C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
+--		outputMask = [&uint16](tempPointer)
 
-	var inputVar : &float
-	C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
-	inputVar = [&float](tempPointer)
+		var kernelVals : &float
 
-	var inputMask : &uint16
-	C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
-	inputMask = [&uint16](tempPointer)
-
-
-
-	var outputIm : &float
-	C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
-	outputIm = [&float](tempPointer)
-
-	var outputVar : &float
-	C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
-	outputVar = [&float](tempPointer)
-
-	var outputMask : &uint16
-	C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
-	outputMask = [&uint16](tempPointer)
-
-	var kernelVals : &float
-
-	for x = 0, width do
-		for y = 0, height do
-			inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
+		for x = 0, width do
+			for y = 0, height do
+				inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
 
 
-			outputIm[y*width + x] = 0.0f
-			outputVar[y*width + x] = 0.0f
-			outputMask[y*width + x] = 0
+				outputIm[y*width + x] = 0.0f
+				outputVar[y*width + x] = 0.0f
+				outputMask[y*width + x] = 0
+			end
 		end
-	end
 
-	var t1 = C.clock()
+		var t1 = C.clock()
 
---	var xSplit : int = 32
---	for xOuter = boundingBox, (width-boundingBox-xSplit), xSplit do
-		for y = boundingBox, height-boundingBox do
-			for x = boundingBox, (width-boundingBox) do
---			for x = xOuter, xOuter+xSplit, 4 do
-				var curKernelVal : float
+	--	var xSplit : int = 32
+	--	for xOuter = _boundingBox, (width-_boundingBox-xSplit), xSplit do
 
-				var curImOut : float = 0.0f
-				var curVarOut : float = 0.0f
-				var curMaskOut : uint16 = 0
+			var kernelArea = (_boundingBox*2+1)*(_boundingBox*2+1)
+			var kernelWidth = _boundingBox*2+1
 
-				var curNorm : float = 0.0f
+			kernelVals = [&float](C.malloc(kernelArea*5*sizeof(float)))
 
-				var kernelArea = (boundingBox*2+1)*(boundingBox*2+1)
-				var kernelWidth = boundingBox*2+1
-				--kernelVals = [&float](C.malloc(kernelArea*5*sizeof(float)))
+			--C.posix_memalign(&tempPointer, C.sysconf(C._SC_PAGESIZE), kernelArea*5*sizeof(float))
+			--C.posix_memalign(&tempPointer, 64, kernelArea*5*sizeof(float))
+			--kernelVals = [&float](tempPointer)
 
-
-
-				--C.posix_memalign(&tempPointer, C.sysconf(C._SC_PAGESIZE), kernelArea*5*sizeof(float))
-				C.posix_memalign(&tempPointer, 64, kernelArea*5*sizeof(float))
-				kernelVals = [&float](tempPointer)
-
-				escape
-					for j = -boundingBox, boundingBox do
-						for i = -boundingBox, boundingBox do
-							emit quote
-								kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5] = [kernel1(i, j)]
-								kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+1] = [kernel2(i, j)]
-								kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+2] = [kernel3(i, j)]
-								kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+3] = [kernel4(i, j)]
-								kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+4] = [kernel5(i, j)]
-							end
+			escape
+				for j = -_boundingBox, _boundingBox do
+					for i = -_boundingBox, _boundingBox do
+						emit quote
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5] = [kernel1(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1] = [kernel2(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2] = [kernel3(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3] = [kernel4(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4] = [kernel5(i, j)]
 						end
 					end
 				end
-
-				escape 
-				    for j = -boundingBox, boundingBox do
-				        for i = -boundingBox, boundingBox do
-				        	emit quote
-				--    for j = -boundingBox, boundingBox+1 do
-				--        for i = -boundingBox, boundingBox+1 do
-				        		var curKernelLocation = (kernelWidth*(j+boundingBox) + (i+boundingBox))*5
-				        		curKernelVal = polynomial1(x, y)*kernelVals[curKernelLocation] +
-					                polynomial2(x, y)*kernelVals[curKernelLocation+1] + polynomial3(x, y)*kernelVals[curKernelLocation+2] + 
-					                polynomial4(x, y)*kernelVals[curKernelLocation+3] + polynomial5(x, y)*kernelVals[curKernelLocation+4];
-
-					            var curImInVec = inputIm[(y+j)*width + x+i]
-					            var curVarInVec = inputVar[(y+j)*width + x+i]
-					            var curMaskInVec = inputMask[(y+j)*width + x+i]
-
-
-					            curImOut = curImOut + curImInVec*curKernelVal; 
-					            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
-
-					            if curKernelVal ~= 0.0f then
-					            	curMaskOut = curMaskOut or curMaskInVec 
-					            end
-
-					            curNorm = curNorm + curKernelVal;
-					        end
-				        end
-				    end
-				end
-			    curImOut = curImOut/curNorm
-			    outputIm[y*width + x] = curImOut
-
-			    curVarOut = curVarOut/(curNorm*curNorm)
-			    outputVar[y*width + x] = curVarOut
-
-			    outputMask[y*width + x] = curMaskOut
-
 			end
-		end
-	--end
 
-	var t2 = C.clock()
-	C.printf("\n\nMasked image lin combo, NO UNROLLING %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
-	C.printf("outputIm[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", outputIm[boundingBox*width + boundingBox],  (t2-t1)/1000.0)
-	C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+			for y = _boundingBox, height-_boundingBox do
+				for x = _boundingBox, (width-_boundingBox) do
+	--			for x = xOuter, xOuter+xSplit, 4 do
+					var curKernelVal : float
 
-	C.printf("Image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputIm[i*width + j])
-		end
-		C.printf("\n")
+					var curImOut : float = 0.0f
+					var curVarOut : float = 0.0f
+					var curMaskOut : uint16 = 0
+
+					var curNorm : float = 0.0f
+
+
+
+
+
+
+					escape 
+					    for j = -_boundingBox, _boundingBox do
+					        for i = -_boundingBox, _boundingBox do
+					        	emit quote
+					--    for j = -_boundingBox, _boundingBox+1 do
+					--        for i = -_boundingBox, _boundingBox+1 do
+					        		var curKernelLocation = (kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5
+					        		curKernelVal = polynomial1(x, y)*kernelVals[curKernelLocation] +
+						                polynomial2(x, y)*kernelVals[curKernelLocation+1] + polynomial3(x, y)*kernelVals[curKernelLocation+2] + 
+						                polynomial4(x, y)*kernelVals[curKernelLocation+3] + polynomial5(x, y)*kernelVals[curKernelLocation+4];
+
+						            var curImInVec = inputIm[(y+j)*width + x+i]
+						            var curVarInVec = inputVar[(y+j)*width + x+i]
+						            var curMaskInVec = inputMask[(y+j)*width + x+i]
+
+
+						            curImOut = curImOut + curImInVec*curKernelVal; 
+						            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+
+						            if curKernelVal ~= 0.0f then
+						            	curMaskOut = curMaskOut or curMaskInVec 
+						            end
+
+						            curNorm = curNorm + curKernelVal;
+						        end
+					        end
+					    end
+					end
+				    curImOut = curImOut/curNorm
+				    outputIm[y*width + x] = curImOut
+
+				    curVarOut = curVarOut/(curNorm*curNorm)
+				    outputVar[y*width + x] = curVarOut
+
+				    outputMask[y*width + x] = curMaskOut
+
+				end
+			end
+		--end
+
+		var t2 = C.clock()
+		C.printf("terra_noUnrollVectorAccess, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
+
+--		C.printf("\n\nMasked image lin combo, NO UNROLLING %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+
+	    C.free(inputIm)
+		C.free(outputIm)
+		C.free(inputVar)
+		C.free(outputVar)
+		C.free(inputMask)
+		C.free(outputMask)
+		C.free(kernelVals)
 	end
 
-	C.printf("Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputVar[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-	C.printf("Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%d\t", outputMask[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-    C.free(inputIm)
-	C.free(outputIm)
-	C.free(inputVar)
-	C.free(outputVar)
-	C.free(inputMask)
-	C.free(outputMask)
-	C.free(kernelVals)
+	blurMaskedImageLinComboKernelValsArrayAccessed()
 end
 
 
+
+
+
+--playing around with aligning arrays to cache lines
+--deal with image, mask, and variance planes
+local function luaBlurMaskedImageLinComboKernelValsArrayAccessedVectorized8(_boundingBox)
+	local terra blurMaskedImageLinComboKernelValsArrayAccessed()
+	--	var _boundingBox : int = 2
+		var width : int = 2048
+		var height : int = 1489
+
+
+		var inputIm : &float
+		inputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var inputVar : &float
+		inputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var inputMask : &uint16
+		inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+
+		var outputIm : &float
+		outputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var outputVar : &float
+		outputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var outputMask : &uint16
+		outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+
+--		var tempPointer : &opaque
+--	
+--		var inputIm : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		inputIm = [&float](tempPointer)
+--	
+--		var inputVar : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		inputVar = [&float](tempPointer)
+--	
+--		var inputMask : &uint16
+--		C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
+--		inputMask = [&uint16](tempPointer)
+--	
+--	
+--	
+--		var outputIm : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		outputIm = [&float](tempPointer)
+--	
+--		var outputVar : &float
+--		C.posix_memalign(&tempPointer, 64, sizeof(float)*width*height)
+--		outputVar = [&float](tempPointer)
+--	
+--		var outputMask : &uint16
+--		C.posix_memalign(&tempPointer, 64, sizeof(uint16)*width*height)
+--		outputMask = [&uint16](tempPointer)
+
+		var kernelVals : &float
+
+		for x = 0, width do
+			for y = 0, height do
+				inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
+
+
+				outputIm[y*width + x] = 0.0f
+				outputVar[y*width + x] = 0.0f
+				outputMask[y*width + x] = 0
+			end
+		end
+
+		var t1 = C.clock()
+
+	--	var xSplit : int = 32
+	--	for xOuter = _boundingBox, (width-_boundingBox-xSplit), xSplit do
+
+			var kernelArea = (_boundingBox*2+1)*(_boundingBox*2+1)
+			var kernelWidth = _boundingBox*2+1
+			
+			kernelVals = [&float](C.malloc(kernelArea*5*sizeof(float)))
+
+			--C.posix_memalign(&tempPointer, C.sysconf(C._SC_PAGESIZE), kernelArea*5*sizeof(float))
+			--C.posix_memalign(&tempPointer, 64, kernelArea*5*sizeof(float))
+			--kernelVals = [&float](tempPointer)
+
+			escape
+				for j = -_boundingBox, _boundingBox do
+					for i = -_boundingBox, _boundingBox do
+						emit quote
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5] = [kernel1(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1] = [kernel2(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2] = [kernel3(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3] = [kernel4(i, j)]
+							kernelVals[(kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4] = [kernel5(i, j)]
+						end
+					end
+				end
+			end
+
+			for y = _boundingBox, height-_boundingBox do
+				for x = _boundingBox, (width-_boundingBox) do
+					var curKernelVal : vector(float,8)
+					var curKernelValTemp : float[8]
+					var curImOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+					var curVarOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+		
+		--			var curMaskOut : vector(uint16,4) = vector(0,0,0,0)
+		
+					var curMaskOut : vector(uint16, 8) = vector(0, 0, 0, 0,0, 0, 0, 0)
+					var zeroVec : vector(float, 8) = vector(0.f, 0.f, 0.f, 0.f,0.f,0.f,0.f,0.f)
+		
+					var curNorm : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+
+
+
+
+
+
+					escape 
+					    for j = -_boundingBox, _boundingBox do
+					        for i = -_boundingBox, _boundingBox do
+					        	emit quote
+					        			var curKernelLocation = (kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5
+
+				        		curKernelValTemp[0] = polynomial1(x, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x, y)*kernelVals[curKernelLocation+1] + polynomial3(x, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x, y)*kernelVals[curKernelLocation+3] + polynomial5(x, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[1] = polynomial1(x+1, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+1, y)*kernelVals[curKernelLocation+1] + polynomial3(x+1, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+1, y)*kernelVals[curKernelLocation+3] + polynomial5(x+1, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[2] = polynomial1(x+2, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+2, y)*kernelVals[curKernelLocation+1] + polynomial3(x+2, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+2, y)*kernelVals[curKernelLocation+3] + polynomial5(x+2, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[3] = polynomial1(x+3, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+3, y)*kernelVals[curKernelLocation+1] + polynomial3(x+3, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+3, y)*kernelVals[curKernelLocation+3] + polynomial5(x+3, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[4] = polynomial1(x+4, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+4, y)*kernelVals[curKernelLocation+1] + polynomial3(x+4, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+4, y)*kernelVals[curKernelLocation+3] + polynomial5(x+4, y)*kernelVals[curKernelLocation+4];		
+				        		curKernelValTemp[5] = polynomial1(x+5, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+5, y)*kernelVals[curKernelLocation+1] + polynomial3(x+5, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+5, y)*kernelVals[curKernelLocation+3] + polynomial5(x+5, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[6] = polynomial1(x+6, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+6, y)*kernelVals[curKernelLocation+1] + polynomial3(x+6, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+6, y)*kernelVals[curKernelLocation+3] + polynomial5(x+6, y)*kernelVals[curKernelLocation+4];
+				        		curKernelValTemp[7] = polynomial1(x+7, y)*kernelVals[curKernelLocation] +
+					                polynomial2(x+7, y)*kernelVals[curKernelLocation+1] + polynomial3(x+7, y)*kernelVals[curKernelLocation+2] + 
+					                polynomial4(x+7, y)*kernelVals[curKernelLocation+3] + polynomial5(x+7, y)*kernelVals[curKernelLocation+4];
+					            
+					            curKernelVal = @[&vector(float,8)](&curKernelValTemp[0])
+	
+					            var curImInVec = @[&vector(float,8)](&inputIm[(y+j)*width + x+i])
+					            var curVarInVec = @[&vector(float,8)](&inputVar[(y+j)*width + x+i])
+					            var curMaskInVec = @[&vector(uint16,8)](&inputMask[(y+j)*width + x+i])
+	
+	
+					            curImOut = curImOut + curImInVec*curKernelVal; 
+					            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+	
+					            var bitMask : vector(uint16, 8) = vectormask8(curKernelVal, zeroVec)
+					            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+	
+					            curNorm = curNorm + curKernelVal;
+						        end
+					        end
+					    end
+					end
+				    curImOut = curImOut/curNorm
+				    outputIm[y*width + x] = curImOut[0]
+				    outputIm[y*width + x+1] = curImOut[1]
+				    outputIm[y*width + x+2] = curImOut[2]
+				    outputIm[y*width + x+3] = curImOut[3]
+				    outputIm[y*width + x+4] = curImOut[4]
+				    outputIm[y*width + x+5] = curImOut[5]
+				    outputIm[y*width + x+6] = curImOut[6]
+				    outputIm[y*width + x+7] = curImOut[7]
+		--		    outputIm[x + width*y] = curImOut/curNorm
+		
+				    curVarOut = curVarOut/(curNorm*curNorm)
+				    outputVar[y*width + x] = curVarOut[0]
+				    outputVar[y*width + x+1] = curVarOut[1]
+				    outputVar[y*width + x+2] = curVarOut[2]
+				    outputVar[y*width + x+3] = curVarOut[3]
+				    outputVar[y*width + x+4] = curVarOut[4]
+				    outputVar[y*width + x+5] = curVarOut[5]
+				    outputVar[y*width + x+6] = curVarOut[6]
+				    outputVar[y*width + x+7] = curVarOut[7]
+		
+				    outputMask[y*width + x] = curMaskOut[0]
+				    outputMask[y*width + x+1] = curMaskOut[1]
+				    outputMask[y*width + x+2] = curMaskOut[2]
+				    outputMask[y*width + x+3] = curMaskOut[3]
+				    outputMask[y*width + x+4] = curMaskOut[4]
+				    outputMask[y*width + x+5] = curMaskOut[5]
+				    outputMask[y*width + x+6] = curMaskOut[6]
+				    outputMask[y*width + x+7] = curMaskOut[7]
+
+				end
+			end
+		--end
+
+		var t2 = C.clock()
+		C.printf("terra_noUnrollVectorAccess, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
+
+--		C.printf("\n\nMasked image lin combo, NO UNROLLING %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+
+	    C.free(inputIm)
+		C.free(outputIm)
+		C.free(inputVar)
+		C.free(outputVar)
+		C.free(inputMask)
+		C.free(outputMask)
+		C.free(kernelVals)
+	end
+
+	blurMaskedImageLinComboKernelValsArrayAccessed()
+end
 
 --deal with image, mask, and variance planes
 local kernelValSymbols = {}
@@ -2170,7 +2646,7 @@ local function luaBlurMaskedImageLinComboUnrollSymbols(_boundingBox)
 			end
 		end
 
-		var t1 = C.clock()
+		
 
 		escape
 
@@ -2182,22 +2658,102 @@ local function luaBlurMaskedImageLinComboUnrollSymbols(_boundingBox)
 	            table.insert(kernelValSymbols, cur_kernelValue_symbol)
 	        end
 
+	        if(giveKernelsYSymmetry) then
+	        	for j = -_boundingBox, 0 do
+	        		local symmetricJVal = -1 * j
+					for i = -_boundingBox, _boundingBox do
+						emit quote
+							var curK1Val = [kernel1(i, j)]
+							var curK2Val = [kernel2(i, j)]
+							var curK3Val = [kernel3(i, j)]
+							var curK4Val = [kernel4(i, j)]
+							var curK5Val = [kernel5(i, j)]
 
-			for j = -_boundingBox, _boundingBox do
-				for i = -_boundingBox, _boundingBox do
-					emit quote
-						var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = [kernel1(i, j)]
-						var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = [kernel2(i, j)]
-						var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = [kernel3(i, j)]
-						var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = [kernel4(i, j)]
-						var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = [kernel5(i, j)]
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = curK5Val
+
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+5]] = curK5Val
+						end
+					end
+				end
+			elseif(giveKernelsXandYSymmetry) then
+				for j = -_boundingBox, 0 do
+	        		local symmetricJVal = -1 * j
+					for i = -_boundingBox, 0 do
+						local symmetricIVal = -1 * i
+						emit quote
+							var curK1Val = [kernel1(i, j)]
+							var curK2Val = [kernel2(i, j)]
+							var curK3Val = [kernel3(i, j)]
+							var curK4Val = [kernel4(i, j)]
+							var curK5Val = [kernel5(i, j)]
+
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = curK5Val
+
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (i+_boundingBox))*5+5]] = curK5Val
+
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (symmetricIVal+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (symmetricIVal+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (symmetricIVal+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (symmetricIVal+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (symmetricIVal+_boundingBox))*5+5]] = curK5Val
+
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (symmetricIVal+_boundingBox))*5+1]] = curK1Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (symmetricIVal+_boundingBox))*5+2]] = curK2Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (symmetricIVal+_boundingBox))*5+3]] = curK3Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (symmetricIVal+_boundingBox))*5+4]] = curK4Val
+							var [kernelValSymbols[(luaKernelWidth*(symmetricJVal+_boundingBox) + (symmetricIVal+_boundingBox))*5+5]] = curK5Val
+						end
+					end
+				end
+	        else
+	            local iVals = symbol()
+	            local jVals = symbol()
+	        	emit quote
+	        		--var [iVals] : int[_boundingBox*2+1]
+	        		--var [jVals] : int[_boundingBox*2+1]
+	        		var [iVals] : &int = [&int](C.malloc(sizeof(int)*(_boundingBox*2+1)))
+	        		var [jVals] : &int = [&int](C.malloc(sizeof(int)*(_boundingBox*2+1)))
+
+		        	for j = -_boundingBox, _boundingBox+1 do
+						iVals[j+_boundingBox] = j
+						jVals[j+_boundingBox] = j
+					end
+	        	end
+
+				for j = -_boundingBox, _boundingBox do
+					for i = -_boundingBox, _boundingBox do
+						emit quote
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = kernel1(iVals[i+_boundingBox], jVals[j+_boundingBox])
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = kernel2(iVals[i+_boundingBox], jVals[j+_boundingBox])
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = kernel3(iVals[i+_boundingBox], jVals[j+_boundingBox])
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = kernel4(iVals[i+_boundingBox], jVals[j+_boundingBox])
+							var [kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = kernel5(iVals[i+_boundingBox], jVals[j+_boundingBox])
+						end
 					end
 				end
 			end
 		end
 
-		var tB = C.clock()
-		C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
+		var t1 = C.clock()
+
+--		var tB = C.clock()
+--		C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
 
 
 
@@ -2229,8 +2785,8 @@ local function luaBlurMaskedImageLinComboUnrollSymbols(_boundingBox)
 					--        for i = -_boundingBox, _boundingBox+1 do
 					--        		var curKernelLocation = (kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5
 					        		curKernelVal = polynomial1(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
-						                polynomial2(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] + polynomial3(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] + 
-						                polynomial4(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] + polynomial5(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+						                polynomial2(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] + polynomial3(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] 
+						                + polynomial4(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] + polynomial5(x, y)*[kernelValSymbols[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
 
 						            var curImInVec = inputIm[(y+j)*width + x+i]
 						            var curVarInVec = inputVar[(y+j)*width + x+i]
@@ -2262,33 +2818,35 @@ local function luaBlurMaskedImageLinComboUnrollSymbols(_boundingBox)
 		--end
 
 		var t2 = C.clock()
-		C.printf("\n\nMasked image lin combo, UNROLLING w/ SYMBOLS %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
-		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
-		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
-
-		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
-		for i=_boundingBox,_boundingBox+10 do
-			for j=_boundingBox,_boundingBox+10 do
-				C.printf("%f\t", outputIm[i*width + j])
-			end
-			C.printf("\n")
-		end
-
-		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
-		for i=_boundingBox,_boundingBox+10 do
-			for j=_boundingBox,_boundingBox+10 do
-				C.printf("%f\t", outputVar[i*width + j])
-			end
-			C.printf("\n")
-		end
-
-		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
-		for i=_boundingBox,_boundingBox+10 do
-			for j=_boundingBox,_boundingBox+10 do
-				C.printf("%d\t", outputMask[i*width + j])
-			end
-			C.printf("\n")
-		end
+		C.printf("terra_unrollSymbols, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
+--		C.printf("\n\nMasked image lin combo, UNROLLING w/ SYMBOLS %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
 
 	    C.free(inputIm)
 		C.free(outputIm)
@@ -2304,388 +2862,399 @@ end
 
 --deal with image, mask, and variance planes
 local kernelValSymbols6 = {}
+local function luaBlurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel(_boundingBox)
+	local terra blurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel()
+	--	var _boundingBox : int = 2
+		var width : int = 2048
+		var height : int = 1489
 
-local terra blurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel()
---	var boundingBox : int = 2
-	var width : int = 2048
-	var height : int = 1489
+		var inputIm : &float
+		inputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var inputVar : &float
+		inputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var inputMask : &uint16
+		inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	var inputIm : &float
-	inputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var inputVar : &float
-	inputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var inputMask : &uint16
-	inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+		var outputIm : &float
+		outputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var outputVar : &float
+		outputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var outputMask : &uint16
+		outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	var outputIm : &float
-	outputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var outputVar : &float
-	outputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var outputMask : &uint16
-	outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+		var kernelVals : &float
 
-	var kernelVals : &float
-
-	for x = 0, width do
-		for y = 0, height do
-			inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
+		for x = 0, width do
+			for y = 0, height do
+				inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
 
 
-			outputIm[y*width + x] = 0.0f
-			outputVar[y*width + x] = 0.0f
-			outputMask[y*width + x] = 0
+				outputIm[y*width + x] = 0.0f
+				outputVar[y*width + x] = 0.0f
+				outputMask[y*width + x] = 0
+			end
 		end
-	end
-
-	var t1 = C.clock()
-
-	escape
-
-		local luaKernelArea = (boundingBox*2+1)*(boundingBox*2+1)
-		local luaKernelWidth = boundingBox*2+1
-
-        for i = 1, luaKernelArea*5 do
-            local cur_kernelValue_symbol = symbol(double, "kVal"..i)
-            table.insert(kernelValSymbols6, cur_kernelValue_symbol)
-        end
 
 
-		for j = -boundingBox, boundingBox do
-			for i = -boundingBox, boundingBox do
-				emit quote
-					var [kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] = [kernel1Double(i, j)]
-					var [kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]] = [kernel2Double(i, j)]
-					var [kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]] = [kernel3Double(i, j)]
-					var [kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]] = [kernel4Double(i, j)]
-					var [kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]] = [kernel5Double(i, j)]
+		escape
+
+			local luaKernelArea = (_boundingBox*2+1)*(_boundingBox*2+1)
+			local luaKernelWidth = _boundingBox*2+1
+
+	        for i = 1, luaKernelArea*5 do
+	            local cur_kernelValue_symbol = symbol(double, "kVal"..i)
+	            table.insert(kernelValSymbols6, cur_kernelValue_symbol)
+	        end
+
+
+			for j = -_boundingBox, _boundingBox do
+				for i = -_boundingBox, _boundingBox do
+					emit quote
+						var [kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = [kernel1Double(i, j)]
+						var [kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = [kernel2Double(i, j)]
+						var [kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = [kernel3Double(i, j)]
+						var [kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = [kernel4Double(i, j)]
+						var [kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = [kernel5Double(i, j)]
+					end
 				end
 			end
 		end
-	end
 
-	var tB = C.clock()
-	C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
+		var t1 = C.clock()
 
-
-
---	var xSplit : int = 32
---	for xOuter = boundingBox, (width-boundingBox-xSplit), xSplit do
-		for y = boundingBox, height-boundingBox do
-			for x = boundingBox, (width-boundingBox) do
---			for x = xOuter, xOuter+xSplit, 4 do
-				var curKernelVal : double
-
-				var curImOut : float = 0.0f
-				var curVarOut : float = 0.0f
-				var curMaskOut : uint16 = 0
-
-				var curNorm : float = 0.0f
-
-				var kernelArea = (boundingBox*2+1)*(boundingBox*2+1)
-				var kernelWidth = boundingBox*2+1
---				kernelVals = [&float](C.malloc(kernelArea*5*sizeof(float)))
+		var tB = C.clock()
+		--C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
 
 
-				escape 
-					local luaKernelWidth = boundingBox*2+1
 
-				    for j = -boundingBox, boundingBox do
-				        for i = -boundingBox, boundingBox do
-				        	emit quote
-				--    for j = -boundingBox, boundingBox+1 do
-				--        for i = -boundingBox, boundingBox+1 do
-				--        		var curKernelLocation = (kernelWidth*(j+boundingBox) + (i+boundingBox))*5
-				        		curKernelVal = polynomial1Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-					                polynomial2Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]] + polynomial3Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]] + 
-					                polynomial4Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]] + polynomial5Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
+	--	var xSplit : int = 32
+	--	for xOuter = _boundingBox, (width-_boundingBox-xSplit), xSplit do
+			for y = _boundingBox, height-_boundingBox do
+				for x = _boundingBox, (width-_boundingBox) do
+	--			for x = xOuter, xOuter+xSplit, 4 do
+					var curKernelVal : double
 
-					            var curImInVec : double = [double](inputIm[(y+j)*width + x+i])
-					            var curVarInVec : double = [double](inputVar[(y+j)*width + x+i])
-					            var curMaskInVec = inputMask[(y+j)*width + x+i]
+					var curImOut : float = 0.0f
+					var curVarOut : float = 0.0f
+					var curMaskOut : uint16 = 0
+
+					var curNorm : float = 0.0f
+
+					var kernelArea = (_boundingBox*2+1)*(_boundingBox*2+1)
+					var kernelWidth = _boundingBox*2+1
+	--				kernelVals = [&float](C.malloc(kernelArea*5*sizeof(float)))
 
 
-					            curImOut = curImOut + [float](curImInVec*curKernelVal); 
-					            curVarOut = curVarOut + [float](curVarInVec*curKernelVal*curKernelVal);
+					escape 
+						local luaKernelWidth = _boundingBox*2+1
 
-					            if curKernelVal ~= 0.0f then
-					            	curMaskOut = curMaskOut or curMaskInVec 
-					            end
+					    for j = -_boundingBox, _boundingBox do
+					        for i = -_boundingBox, _boundingBox do
+					        	emit quote
+					--    for j = -_boundingBox, _boundingBox+1 do
+					--        for i = -_boundingBox, _boundingBox+1 do
+					--        		var curKernelLocation = (kernelWidth*(j+_boundingBox) + (i+_boundingBox))*5
+					        		curKernelVal = polynomial1Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+						                polynomial2Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] + polynomial3Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] + 
+						                polynomial4Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] + polynomial5Double(x, y)*[kernelValSymbols6[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
 
-					            curNorm = curNorm + [float](curKernelVal);
+						            var curImInVec : double = [double](inputIm[(y+j)*width + x+i])
+						            var curVarInVec : double = [double](inputVar[(y+j)*width + x+i])
+						            var curMaskInVec = inputMask[(y+j)*width + x+i]
+
+
+						            curImOut = curImOut + [float](curImInVec*curKernelVal); 
+						            curVarOut = curVarOut + [float](curVarInVec*curKernelVal*curKernelVal);
+
+						            if curKernelVal ~= 0.0f then
+						            	curMaskOut = curMaskOut or curMaskInVec 
+						            end
+
+						            curNorm = curNorm + [float](curKernelVal);
+						        end
 					        end
-				        end
-				    end
+					    end
+					end
+				    curImOut = curImOut/curNorm
+				    outputIm[y*width + x] = curImOut
+
+				    curVarOut = curVarOut/(curNorm*curNorm)
+				    outputVar[y*width + x] = curVarOut
+
+				    outputMask[y*width + x] = curMaskOut
+
 				end
-			    curImOut = curImOut/curNorm
-			    outputIm[y*width + x] = curImOut
-
-			    curVarOut = curVarOut/(curNorm*curNorm)
-			    outputVar[y*width + x] = curVarOut
-
-			    outputMask[y*width + x] = curMaskOut
-
 			end
-		end
-	--end
+		--end
 
-	var t2 = C.clock()
-	C.printf("\n\nMasked image lin combo, UNROLLING w/ SYMBOLS, Double precision kernel %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
-	C.printf("outputIm[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", outputIm[boundingBox*width + boundingBox],  (t2-t1)/1000.0)
-	C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+		var t2 = C.clock()
+		C.printf("terra_unrollSymbolsDoublePrecision, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
 
-	C.printf("Image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputIm[i*width + j])
-		end
-		C.printf("\n")
+--		C.printf("\n\nMasked image lin combo, UNROLLING w/ SYMBOLS, Double precision kernel %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+
+	    C.free(inputIm)
+		C.free(outputIm)
+		C.free(inputVar)
+		C.free(outputVar)
+		C.free(inputMask)
+		C.free(outputMask)
+	--	C.free(kernelVals)
 	end
-
-	C.printf("Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputVar[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-	C.printf("Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%d\t", outputMask[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-    C.free(inputIm)
-	C.free(outputIm)
-	C.free(inputVar)
-	C.free(outputVar)
-	C.free(inputMask)
-	C.free(outputMask)
---	C.free(kernelVals)
+	blurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel()
 end
-
-
 
 terra vectormask8(a : vector(float,8), b : vector(float,8))
     return terralib.select(a ~= b, [vector(uint16,8)](0xFFFFULL),[vector(uint16,8)](0) ) 
 end
 
 local kernelValSymbols1 = {}
-local terra blurMaskedImageLinComboVectorize8UnrollSymbols()
---	var boundingBox : int = 2
-	var width : int = 2048
-	var height : int = 1489
+local function luaBlurMaskedImageLinComboVectorize8UnrollSymbols(_boundingBox)
+	local terra blurMaskedImageLinComboVectorize8UnrollSymbols()
+	--	var _boundingBox : int = 2
+		var width : int = 2048
+		var height : int = 1489
 
-	var inputIm : &float
-	inputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var inputVar : &float
-	inputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var inputMask : &uint16
-	inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+		var inputIm : &float
+		inputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var inputVar : &float
+		inputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var inputMask : &uint16
+		inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	var outputIm : &float
-	outputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var outputVar : &float
-	outputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var outputMask : &uint16
-	outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+		var outputIm : &float
+		outputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var outputVar : &float
+		outputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var outputMask : &uint16
+		outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
 
-	for x = 0, width do
-		for y = 0, height do
-			inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
+		for x = 0, width do
+			for y = 0, height do
+				inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
 
 
-			outputIm[y*width + x] = 0.0f
-			outputVar[y*width + x] = 0.0f
-			outputMask[y*width + x] = 0
+				outputIm[y*width + x] = 0.0f
+				outputVar[y*width + x] = 0.0f
+				outputMask[y*width + x] = 0
+			end
 		end
-	end
 
-	var t1 = C.clock()
+		var t1 = C.clock()
 
-	escape
+		escape
 
-		local luaKernelArea = (boundingBox*2+1)*(boundingBox*2+1)
-		local luaKernelWidth = boundingBox*2+1
+			local luaKernelArea = (_boundingBox*2+1)*(_boundingBox*2+1)
+			local luaKernelWidth = _boundingBox*2+1
 
-        for i = 1, luaKernelArea*5 do
-            local cur_kernelValue_symbol = symbol(float, "kVal"..i)
-            table.insert(kernelValSymbols1, cur_kernelValue_symbol)
-        end
+	        for i = 1, luaKernelArea*5 do
+	            local cur_kernelValue_symbol = symbol(float, "kVal"..i)
+	            table.insert(kernelValSymbols1, cur_kernelValue_symbol)
+	        end
 
-		for j = -boundingBox, boundingBox do
-			for i = -boundingBox, boundingBox do
-				emit quote
-					var [kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] = [kernel1(i, j)]
-					var [kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]] = [kernel2(i, j)]
-					var [kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]] = [kernel3(i, j)]
-					var [kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]] = [kernel4(i, j)]
-					var [kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]] = [kernel5(i, j)]
+			for j = -_boundingBox, _boundingBox do
+				for i = -_boundingBox, _boundingBox do
+					emit quote
+						var [kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] = [kernel1(i, j)]
+						var [kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]] = [kernel2(i, j)]
+						var [kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]] = [kernel3(i, j)]
+						var [kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]] = [kernel4(i, j)]
+						var [kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]] = [kernel5(i, j)]
+					end
 				end
 			end
 		end
-	end
 
 
-	for y = boundingBox, height-boundingBox do
-		for x = boundingBox, (width-boundingBox), 8 do
-			--var curOut : float = 0
-			--var curNorm : float = 0
-			var curKernelVal : vector(float,8)
-			var curKernelValTemp : float[8]
-			var curImOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
-			var curVarOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+		for y = _boundingBox, height-_boundingBox do
+			for x = _boundingBox, (width-_boundingBox), 8 do
+				--var curOut : float = 0
+				--var curNorm : float = 0
+				var curKernelVal : vector(float,8)
+				var curKernelValTemp : float[8]
+				var curImOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+				var curVarOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
 
---			var curMaskOut : vector(uint16,4) = vector(0,0,0,0)
+	--			var curMaskOut : vector(uint16,4) = vector(0,0,0,0)
 
-			var curMaskOut : vector(uint16, 8) = vector(0, 0, 0, 0,0, 0, 0, 0)
-			var zeroVec : vector(float, 8) = vector(0.f, 0.f, 0.f, 0.f,0.f,0.f,0.f,0.f)
+				var curMaskOut : vector(uint16, 8) = vector(0, 0, 0, 0,0, 0, 0, 0)
+				var zeroVec : vector(float, 8) = vector(0.f, 0.f, 0.f, 0.f,0.f,0.f,0.f,0.f)
 
-			var curNorm : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
---			var curImOutVec = @[&vector(float,4)](&outputIm[y*width + x])
-
-
-			escape 
-				local luaKernelWidth = boundingBox*2+1
-
-			    for j = -boundingBox, boundingBox do
-			        for i = -boundingBox, boundingBox do
-			        	emit quote
-			        		curKernelValTemp[0] = polynomial1(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[1] = polynomial1(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[2] = polynomial1(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[3] = polynomial1(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[4] = polynomial1(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];		
-			        		curKernelValTemp[5] = polynomial1(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[6] = polynomial1(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-			        		curKernelValTemp[7] = polynomial1(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+1]] +
-				                polynomial2(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+2]]
-				                 + polynomial3(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+3]]
-				                 + polynomial4(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+4]]
-				                 + polynomial5(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+boundingBox) + (i+boundingBox))*5+5]];
-				            
-				            curKernelVal = @[&vector(float,8)](&curKernelValTemp[0])
-
-				            var curImInVec = @[&vector(float,8)](&inputIm[(y+j)*width + x+i])
-				            var curVarInVec = @[&vector(float,8)](&inputVar[(y+j)*width + x+i])
-				            var curMaskInVec = @[&vector(uint16,8)](&inputMask[(y+j)*width + x+i])
+				var curNorm : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+	--			var curImOutVec = @[&vector(float,4)](&outputIm[y*width + x])
 
 
-				            curImOut = curImOut + curImInVec*curKernelVal; 
-				            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+				escape 
+					local luaKernelWidth = _boundingBox*2+1
 
-				            var bitMask : vector(uint16, 8) = vectormask8(curKernelVal, zeroVec)
-				            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+				    for j = -_boundingBox, _boundingBox do
+				        for i = -_boundingBox, _boundingBox do
+				        	emit quote
+				        		curKernelValTemp[0] = polynomial1(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[1] = polynomial1(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+1, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[2] = polynomial1(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+2, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[3] = polynomial1(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+3, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[4] = polynomial1(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+4, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];		
+				        		curKernelValTemp[5] = polynomial1(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+5, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[6] = polynomial1(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+6, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+				        		curKernelValTemp[7] = polynomial1(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+1]] +
+					                polynomial2(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+2]]
+					                 + polynomial3(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+3]]
+					                 + polynomial4(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+4]]
+					                 + polynomial5(x+7, y)*[kernelValSymbols1[(luaKernelWidth*(j+_boundingBox) + (i+_boundingBox))*5+5]];
+					            
+					            curKernelVal = @[&vector(float,8)](&curKernelValTemp[0])
 
-				            curNorm = curNorm + curKernelVal;
+					            var curImInVec = @[&vector(float,8)](&inputIm[(y+j)*width + x+i])
+					            var curVarInVec = @[&vector(float,8)](&inputVar[(y+j)*width + x+i])
+					            var curMaskInVec = @[&vector(uint16,8)](&inputMask[(y+j)*width + x+i])
+
+
+					            curImOut = curImOut + curImInVec*curKernelVal; 
+					            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+
+					            var bitMask : vector(uint16, 8) = vectormask8(curKernelVal, zeroVec)
+					            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+
+					            curNorm = curNorm + curKernelVal;
+					        end
 				        end
-			        end
-			    end
+				    end
+				end
+			    curImOut = curImOut/curNorm
+			    outputIm[y*width + x] = curImOut[0]
+			    outputIm[y*width + x+1] = curImOut[1]
+			    outputIm[y*width + x+2] = curImOut[2]
+			    outputIm[y*width + x+3] = curImOut[3]
+			    outputIm[y*width + x+4] = curImOut[4]
+			    outputIm[y*width + x+5] = curImOut[5]
+			    outputIm[y*width + x+6] = curImOut[6]
+			    outputIm[y*width + x+7] = curImOut[7]
+	--		    outputIm[x + width*y] = curImOut/curNorm
+
+			    curVarOut = curVarOut/(curNorm*curNorm)
+			    outputVar[y*width + x] = curVarOut[0]
+			    outputVar[y*width + x+1] = curVarOut[1]
+			    outputVar[y*width + x+2] = curVarOut[2]
+			    outputVar[y*width + x+3] = curVarOut[3]
+			    outputVar[y*width + x+4] = curVarOut[4]
+			    outputVar[y*width + x+5] = curVarOut[5]
+			    outputVar[y*width + x+6] = curVarOut[6]
+			    outputVar[y*width + x+7] = curVarOut[7]
+
+			    outputMask[y*width + x] = curMaskOut[0]
+			    outputMask[y*width + x+1] = curMaskOut[1]
+			    outputMask[y*width + x+2] = curMaskOut[2]
+			    outputMask[y*width + x+3] = curMaskOut[3]
+			    outputMask[y*width + x+4] = curMaskOut[4]
+			    outputMask[y*width + x+5] = curMaskOut[5]
+			    outputMask[y*width + x+6] = curMaskOut[6]
+			    outputMask[y*width + x+7] = curMaskOut[7]
+
 			end
-		    curImOut = curImOut/curNorm
-		    outputIm[y*width + x] = curImOut[0]
-		    outputIm[y*width + x+1] = curImOut[1]
-		    outputIm[y*width + x+2] = curImOut[2]
-		    outputIm[y*width + x+3] = curImOut[3]
-		    outputIm[y*width + x+4] = curImOut[4]
-		    outputIm[y*width + x+5] = curImOut[5]
-		    outputIm[y*width + x+6] = curImOut[6]
-		    outputIm[y*width + x+7] = curImOut[7]
---		    outputIm[x + width*y] = curImOut/curNorm
-
-		    curVarOut = curVarOut/(curNorm*curNorm)
-		    outputVar[y*width + x] = curVarOut[0]
-		    outputVar[y*width + x+1] = curVarOut[1]
-		    outputVar[y*width + x+2] = curVarOut[2]
-		    outputVar[y*width + x+3] = curVarOut[3]
-		    outputVar[y*width + x+4] = curVarOut[4]
-		    outputVar[y*width + x+5] = curVarOut[5]
-		    outputVar[y*width + x+6] = curVarOut[6]
-		    outputVar[y*width + x+7] = curVarOut[7]
-
-		    outputMask[y*width + x] = curMaskOut[0]
-		    outputMask[y*width + x+1] = curMaskOut[1]
-		    outputMask[y*width + x+2] = curMaskOut[2]
-		    outputMask[y*width + x+3] = curMaskOut[3]
-		    outputMask[y*width + x+4] = curMaskOut[4]
-		    outputMask[y*width + x+5] = curMaskOut[5]
-		    outputMask[y*width + x+6] = curMaskOut[6]
-		    outputMask[y*width + x+7] = curMaskOut[7]
-
 		end
+
+		var t2 = C.clock()
+		C.printf("terra_unrollSymbolsVec8, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
+
+--		C.printf("\n\nVectorized 8wide masked image lin combo, unrolled w/Symbols %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+
+	    C.free(inputIm)
+		C.free(outputIm)
+		C.free(inputVar)
+		C.free(outputVar)
+		C.free(inputMask)
+		C.free(outputMask)
 	end
 
-	var t2 = C.clock()
-	C.printf("\n\nVectorized 8wide masked image lin combo, unrolled w/Symbols %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
-	C.printf("outputIm[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", outputIm[boundingBox*width + boundingBox],  (t2-t1)/1000.0)
-	C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+	blurMaskedImageLinComboVectorize8UnrollSymbols()
 
-	C.printf("Image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputIm[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-	C.printf("Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputVar[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-	C.printf("Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%d\t", outputMask[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-    C.free(inputIm)
-	C.free(outputIm)
-	C.free(inputVar)
-	C.free(outputVar)
-	C.free(inputMask)
-	C.free(outputMask)
 end
-
 
 
 
@@ -3175,176 +3744,180 @@ local terra blurMaskedImageLinComboVectorize()
 end
 
 
-
-local terra blurMaskedImageLinComboVectorize8()
---	var boundingBox : int = 2
-	var width : int = 2048
-	var height : int = 1489
-
-	var inputIm : &float
-	inputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var inputVar : &float
-	inputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var inputMask : &uint16
-	inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
-
-	var outputIm : &float
-	outputIm = [&float](C.malloc(sizeof(float)*width*height))
-	var outputVar : &float
-	outputVar = [&float](C.malloc(sizeof(float)*width*height))
-	var outputMask : &uint16
-	outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
-
-	for x = 0, width do
-		for y = 0, height do
-			inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
-			inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
-
-
-			outputIm[y*width + x] = 0.0f
-			outputVar[y*width + x] = 0.0f
-			outputMask[y*width + x] = 0
-		end
-	end
-
-	var t1 = C.clock()
-
-	for y = boundingBox, height-boundingBox do
-		for x = boundingBox, (width-boundingBox), 8 do
-			--var curOut : float = 0
-			--var curNorm : float = 0
-			var curKernelVal : vector(float,8)
-			var curKernelValTemp : float[8]
-			var curImOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
-			var curVarOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
-
---			var curMaskOut : vector(uint16,4) = vector(0,0,0,0)
-
-			var curMaskOut : vector(uint16, 8) = vector(0, 0, 0, 0,0, 0, 0, 0)
-			var zeroVec : vector(float, 8) = vector(0.f, 0.f, 0.f, 0.f,0.f,0.f,0.f,0.f)
-
-			var curNorm : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
---			var curImOutVec = @[&vector(float,4)](&outputIm[y*width + x])
-
-
-			escape 
-			    for j = -boundingBox, boundingBox do
-			        for i = -boundingBox, boundingBox do
-			        	emit quote
-			        		curKernelValTemp[0] = polynomial1(x, y)*kernel1(i, j) +
-				                polynomial2(x, y)*kernel2(i, j) + polynomial3(x, y)*kernel3(i, j) + 
-				                polynomial4(x, y)*kernel4(i, j) + polynomial5(x, y)*kernel5(i, j);
-			        		curKernelValTemp[1] = polynomial1(x+1, y)*kernel1(i, j) +
-				                polynomial2(x+1, y)*kernel2(i, j) + polynomial3(x+1, y)*kernel3(i, j) + 
-				                polynomial4(x+1, y)*kernel4(i, j) + polynomial5(x+1, y)*kernel5(i, j);
-			        		curKernelValTemp[2] = polynomial1(x+2, y)*kernel1(i, j) +
-				                polynomial2(x+2, y)*kernel2(i, j) + polynomial3(x+2, y)*kernel3(i, j) + 
-				                polynomial4(x+2, y)*kernel4(i, j) + polynomial5(x+2, y)*kernel5(i, j);
-			        		curKernelValTemp[3] = polynomial1(x+3, y)*kernel1(i, j) +
-				                polynomial2(x+3, y)*kernel2(i, j) + polynomial3(x+3, y)*kernel3(i, j) + 
-				                polynomial4(x+3, y)*kernel4(i, j) + polynomial5(x+3, y)*kernel5(i, j);
-			        		curKernelValTemp[4] = polynomial1(x+4, y)*kernel1(i, j) +
-				                polynomial2(x+4, y)*kernel2(i, j) + polynomial3(x+4, y)*kernel3(i, j) + 
-				                polynomial4(x+4, y)*kernel4(i, j) + polynomial5(x+4, y)*kernel5(i, j);		
-			        		curKernelValTemp[5] = polynomial1(x+5, y)*kernel1(i, j) +
-				                polynomial2(x+5, y)*kernel2(i, j) + polynomial3(x+5, y)*kernel3(i, j) + 
-				                polynomial4(x+5, y)*kernel4(i, j) + polynomial5(x+5, y)*kernel5(i, j);
-			        		curKernelValTemp[6] = polynomial1(x+6, y)*kernel1(i, j) +
-				                polynomial2(x+6, y)*kernel2(i, j) + polynomial3(x+6, y)*kernel3(i, j) + 
-				                polynomial4(x+6, y)*kernel4(i, j) + polynomial5(x+6, y)*kernel5(i, j);
-			        		curKernelValTemp[7] = polynomial1(x+7, y)*kernel1(i, j) +
-				                polynomial2(x+7, y)*kernel2(i, j) + polynomial3(x+7, y)*kernel3(i, j) + 
-				                polynomial4(x+7, y)*kernel4(i, j) + polynomial5(x+7, y)*kernel5(i, j);
-				            
-				            curKernelVal = @[&vector(float,8)](&curKernelValTemp[0])
-
-				            var curImInVec = @[&vector(float,8)](&inputIm[(y+j)*width + x+i])
-				            var curVarInVec = @[&vector(float,8)](&inputVar[(y+j)*width + x+i])
-				            var curMaskInVec = @[&vector(uint16,8)](&inputMask[(y+j)*width + x+i])
-
-
-				            curImOut = curImOut + curImInVec*curKernelVal; 
-				            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
-
-				            var bitMask : vector(uint16, 8) = vectormask8(curKernelVal, zeroVec)
-				            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
-
-				            curNorm = curNorm + curKernelVal;
-				        end
-			        end
-			    end
+local function luaBlurMaskedImageLinComboVectorize8(_boundingBox)
+	local terra blurMaskedImageLinComboVectorize8()
+	--	var _boundingBox : int = 2
+		var width : int = 2048
+		var height : int = 1489
+	
+		var inputIm : &float
+		inputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var inputVar : &float
+		inputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var inputMask : &uint16
+		inputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+	
+		var outputIm : &float
+		outputIm = [&float](C.malloc(sizeof(float)*width*height))
+		var outputVar : &float
+		outputVar = [&float](C.malloc(sizeof(float)*width*height))
+		var outputMask : &uint16
+		outputMask = [&uint16](C.malloc(sizeof(uint16)*width*height))
+	
+		for x = 0, width do
+			for y = 0, height do
+				inputIm[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputVar[y*width + x] = [float](y*x*C.cos(x/(y+1)))
+				inputMask[y*width + x] = [uint16](x*C.cos(x*y) + y)
+	
+	
+				outputIm[y*width + x] = 0.0f
+				outputVar[y*width + x] = 0.0f
+				outputMask[y*width + x] = 0
 			end
-		    curImOut = curImOut/curNorm
-		    outputIm[y*width + x] = curImOut[0]
-		    outputIm[y*width + x+1] = curImOut[1]
-		    outputIm[y*width + x+2] = curImOut[2]
-		    outputIm[y*width + x+3] = curImOut[3]
-		    outputIm[y*width + x+4] = curImOut[4]
-		    outputIm[y*width + x+5] = curImOut[5]
-		    outputIm[y*width + x+6] = curImOut[6]
-		    outputIm[y*width + x+7] = curImOut[7]
---		    outputIm[x + width*y] = curImOut/curNorm
-
-		    curVarOut = curVarOut/(curNorm*curNorm)
-		    outputVar[y*width + x] = curVarOut[0]
-		    outputVar[y*width + x+1] = curVarOut[1]
-		    outputVar[y*width + x+2] = curVarOut[2]
-		    outputVar[y*width + x+3] = curVarOut[3]
-		    outputVar[y*width + x+4] = curVarOut[4]
-		    outputVar[y*width + x+5] = curVarOut[5]
-		    outputVar[y*width + x+6] = curVarOut[6]
-		    outputVar[y*width + x+7] = curVarOut[7]
-
-		    outputMask[y*width + x] = curMaskOut[0]
-		    outputMask[y*width + x+1] = curMaskOut[1]
-		    outputMask[y*width + x+2] = curMaskOut[2]
-		    outputMask[y*width + x+3] = curMaskOut[3]
-		    outputMask[y*width + x+4] = curMaskOut[4]
-		    outputMask[y*width + x+5] = curMaskOut[5]
-		    outputMask[y*width + x+6] = curMaskOut[6]
-		    outputMask[y*width + x+7] = curMaskOut[7]
-
 		end
-	end
-
-	var t2 = C.clock()
-	C.printf("\n\nVectorized 8wide masked image lin combo %dx%d blur Terra:\n", 2*boundingBox+1, 2*boundingBox+1)
-	C.printf("outputIm[boundingBox*width + boundingBox] = %f, computation took: %f ms\n", outputIm[boundingBox*width + boundingBox],  (t2-t1)/1000.0)
-	C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
-
-	C.printf("Image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputIm[i*width + j])
+	
+		var t1 = C.clock()
+	
+		for y = _boundingBox, height-_boundingBox do
+			for x = _boundingBox, (width-_boundingBox), 8 do
+				--var curOut : float = 0
+				--var curNorm : float = 0
+				var curKernelVal : vector(float,8)
+				var curKernelValTemp : float[8]
+				var curImOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+				var curVarOut : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+	
+	--			var curMaskOut : vector(uint16,4) = vector(0,0,0,0)
+	
+				var curMaskOut : vector(uint16, 8) = vector(0, 0, 0, 0,0, 0, 0, 0)
+				var zeroVec : vector(float, 8) = vector(0.f, 0.f, 0.f, 0.f,0.f,0.f,0.f,0.f)
+	
+				var curNorm : vector(float,8) = vector(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f)
+	--			var curImOutVec = @[&vector(float,4)](&outputIm[y*width + x])
+	
+	
+				escape 
+				    for j = -_boundingBox, _boundingBox do
+				        for i = -_boundingBox, _boundingBox do
+				        	emit quote
+				        		curKernelValTemp[0] = polynomial1(x, y)*[luaKernel1(i, j)] +
+					                polynomial2(x, y)*[luaKernel2(i, j)] + polynomial3(x, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x, y)*[luaKernel4(i, j)] + polynomial5(x, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[1] = polynomial1(x+1, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+1, y)*[luaKernel2(i, j)] + polynomial3(x+1, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+1, y)*[luaKernel4(i, j)] + polynomial5(x+1, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[2] = polynomial1(x+2, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+2, y)*[luaKernel2(i, j)] + polynomial3(x+2, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+2, y)*[luaKernel4(i, j)] + polynomial5(x+2, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[3] = polynomial1(x+3, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+3, y)*[luaKernel2(i, j)] + polynomial3(x+3, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+3, y)*[luaKernel4(i, j)] + polynomial5(x+3, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[4] = polynomial1(x+4, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+4, y)*[luaKernel2(i, j)] + polynomial3(x+4, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+4, y)*[luaKernel4(i, j)] + polynomial5(x+4, y)*[luaKernel5(i, j)];		
+				        		curKernelValTemp[5] = polynomial1(x+5, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+5, y)*[luaKernel2(i, j)] + polynomial3(x+5, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+5, y)*[luaKernel4(i, j)] + polynomial5(x+5, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[6] = polynomial1(x+6, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+6, y)*[luaKernel2(i, j)] + polynomial3(x+6, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+6, y)*[luaKernel4(i, j)] + polynomial5(x+6, y)*[luaKernel5(i, j)];
+				        		curKernelValTemp[7] = polynomial1(x+7, y)*[luaKernel1(i, j)] +
+					                polynomial2(x+7, y)*[luaKernel2(i, j)] + polynomial3(x+7, y)*[luaKernel3(i, j)] + 
+					                polynomial4(x+7, y)*[luaKernel4(i, j)] + polynomial5(x+7, y)*[luaKernel5(i, j)];
+					            
+					            curKernelVal = @[&vector(float,8)](&curKernelValTemp[0])
+	
+					            var curImInVec = @[&vector(float,8)](&inputIm[(y+j)*width + x+i])
+					            var curVarInVec = @[&vector(float,8)](&inputVar[(y+j)*width + x+i])
+					            var curMaskInVec = @[&vector(uint16,8)](&inputMask[(y+j)*width + x+i])
+	
+	
+					            curImOut = curImOut + curImInVec*curKernelVal; 
+					            curVarOut = curVarOut + curVarInVec*curKernelVal*curKernelVal;
+	
+					            var bitMask : vector(uint16, 8) = vectormask8(curKernelVal, zeroVec)
+					            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+	
+					            curNorm = curNorm + curKernelVal;
+					        end
+				        end
+				    end
+				end
+			    curImOut = curImOut/curNorm
+			    outputIm[y*width + x] = curImOut[0]
+			    outputIm[y*width + x+1] = curImOut[1]
+			    outputIm[y*width + x+2] = curImOut[2]
+			    outputIm[y*width + x+3] = curImOut[3]
+			    outputIm[y*width + x+4] = curImOut[4]
+			    outputIm[y*width + x+5] = curImOut[5]
+			    outputIm[y*width + x+6] = curImOut[6]
+			    outputIm[y*width + x+7] = curImOut[7]
+	--		    outputIm[x + width*y] = curImOut/curNorm
+	
+			    curVarOut = curVarOut/(curNorm*curNorm)
+			    outputVar[y*width + x] = curVarOut[0]
+			    outputVar[y*width + x+1] = curVarOut[1]
+			    outputVar[y*width + x+2] = curVarOut[2]
+			    outputVar[y*width + x+3] = curVarOut[3]
+			    outputVar[y*width + x+4] = curVarOut[4]
+			    outputVar[y*width + x+5] = curVarOut[5]
+			    outputVar[y*width + x+6] = curVarOut[6]
+			    outputVar[y*width + x+7] = curVarOut[7]
+	
+			    outputMask[y*width + x] = curMaskOut[0]
+			    outputMask[y*width + x+1] = curMaskOut[1]
+			    outputMask[y*width + x+2] = curMaskOut[2]
+			    outputMask[y*width + x+3] = curMaskOut[3]
+			    outputMask[y*width + x+4] = curMaskOut[4]
+			    outputMask[y*width + x+5] = curMaskOut[5]
+			    outputMask[y*width + x+6] = curMaskOut[6]
+			    outputMask[y*width + x+7] = curMaskOut[7]
+	
+			end
 		end
-		C.printf("\n")
-	end
+	
+		var t2 = C.clock()
+		C.printf("terra_unrollKernelHardCodedCompile, %d, %f, 3--force computation %f %f %d\n", (_boundingBox*2+1)*(_boundingBox*2+1), ((float)(t2-t1)/C.CLOCKS_PER_SEC),
+			outputIm[_boundingBox*width + _boundingBox], outputVar[_boundingBox*width + _boundingBox], outputMask[_boundingBox*width + _boundingBox])
 
-	C.printf("Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%f\t", outputVar[i*width + j])
-		end
-		C.printf("\n")
+--		C.printf("\n\nVectorized 8wide masked image lin combo %dx%d blur Terra:\n", 2*_boundingBox+1, 2*_boundingBox+1)
+--		C.printf("outputIm[_boundingBox*width + _boundingBox] = %f, computation took: %f ms\n", outputIm[_boundingBox*width + _boundingBox],  (t2-t1)/1000.0)
+--		C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--	
+--		C.printf("Image plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputIm[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--	
+--		C.printf("Variance plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%f\t", outputVar[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+--	
+--		C.printf("Mask plane, 10x10 box begining at (_boundingBox,_boundingBox)\n")
+--		for i=_boundingBox,_boundingBox+10 do
+--			for j=_boundingBox,_boundingBox+10 do
+--				C.printf("%d\t", outputMask[i*width + j])
+--			end
+--			C.printf("\n")
+--		end
+	
+	    C.free(inputIm)
+		C.free(outputIm)
+		C.free(inputVar)
+		C.free(outputVar)
+		C.free(inputMask)
+		C.free(outputMask)
 	end
-
-	C.printf("Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-	for i=boundingBox,boundingBox+10 do
-		for j=boundingBox,boundingBox+10 do
-			C.printf("%d\t", outputMask[i*width + j])
-		end
-		C.printf("\n")
-	end
-
-    C.free(inputIm)
-	C.free(outputIm)
-	C.free(inputVar)
-	C.free(outputVar)
-	C.free(inputMask)
-	C.free(outputMask)
+	blurMaskedImageLinComboVectorize8()
 end
-
 
 --deal with image, mask, and variance planes
 local terra blurMaskedImageOrAllMaskLinComboVectorize()
@@ -3746,7 +4319,7 @@ local terra blurMaskedImageLinComboUnrollSymbolsInterpolate()
 	end
 
 	var tB = C.clock()
-	C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
+--	C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
 
 
 
@@ -3937,7 +4510,7 @@ local terra blurMaskedImageLinComboUnrollSymbolsTile()
 	end
 
 	var tB = C.clock()
-	C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
+--	C.printf("time spent calculating kernel = %f ms!!!!!!!!!!!!!!@@@@@@@@@@@@", (float)(tB-t1)/C.CLOCKS_PER_SEC*1000.0f)
 
 
 
@@ -4067,30 +4640,123 @@ end
 --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 print("luaKernel1:")
-for j = -boundingBox, boundingBox do
-	for i = -boundingBox, boundingBox do
+for j = -9, 9 do
+	for i = -9, 9 do
 		io.write(luaKernel1(i, j), "\t")
 	end
 	io.write("\n")
 end
 
 local terra printKernel1()
+	var zeroVals : int = 0
+	var nonZeroVals : int = 0
 	C.printf("terraKernel1:\n")
-	for j = -boundingBox, boundingBox + 1 do
-		for i = -boundingBox, boundingBox + 1 do
+	for j = -9, 9 + 1 do
+		for i = -9, 9 + 1 do
 			C.printf("%E\t", kernel1(i, j))
+			if(kernel1(i, j) == 0.0) then
+				zeroVals = zeroVals+1
+			else
+				nonZeroVals = nonZeroVals+1
+			end
 		end
 		C.printf("\n")
 	end 
+	C.printf("number of zero kernel values = %d, nonzero values = %d\n\n",
+				zeroVals, nonZeroVals)
 end
 
 printKernel1()
 
+local terra printKernel2()
+	var zeroVals : int = 0
+	var nonZeroVals : int = 0
+	C.printf("terraKernel1:\n")
+	for j = -9, 9 + 1 do
+		for i = -9, 9 + 1 do
+			C.printf("%E\t", kernel2(i, j))
+			if(kernel2(i, j) == 0.0) then
+				zeroVals = zeroVals+1
+			else
+				nonZeroVals = nonZeroVals+1
+			end
+		end
+		C.printf("\n")
+	end 
+	C.printf("number of zero kernel values = %d, nonzero values = %d\n\n",
+				zeroVals, nonZeroVals)
+end
+
+printKernel2()
+
+local terra printKernel3()
+	var zeroVals : int = 0
+	var nonZeroVals : int = 0
+	C.printf("terraKernel1:\n")
+	for j = -9, 9 + 1 do
+		for i = -9, 9 + 1 do
+			C.printf("%E\t", kernel3(i, j))
+			if(kernel3(i, j) == 0.0) then
+				zeroVals = zeroVals+1
+			else
+				nonZeroVals = nonZeroVals+1
+			end
+		end
+		C.printf("\n")
+	end 
+	C.printf("number of zero kernel values = %d, nonzero values = %d\n\n",
+				zeroVals, nonZeroVals)
+end
+
+printKernel3()
+
+local terra printKernel4()
+	var zeroVals : int = 0
+	var nonZeroVals : int = 0
+	C.printf("terraKernel1:\n")
+	for j = -9, 9 + 1 do
+		for i = -9, 9 + 1 do
+			C.printf("%E\t", kernel4(i, j))
+			if(kernel4(i, j) == 0.0) then
+				zeroVals = zeroVals+1
+			else
+				nonZeroVals = nonZeroVals+1
+			end
+		end
+		C.printf("\n")
+	end 
+	C.printf("number of zero kernel values = %d, nonzero values = %d\n\n",
+				zeroVals, nonZeroVals)
+end
+
+printKernel4()
+
+local terra printKernel5()
+	var zeroVals : int = 0
+	var nonZeroVals : int = 0
+	C.printf("terraKernel1:\n")
+	for j = -9, 9 + 1 do
+		for i = -9, 9 + 1 do
+			C.printf("%E\t", kernel5(i, j))
+			if(kernel5(i, j) == 0.0) then
+				zeroVals = zeroVals+1
+			else
+				nonZeroVals = nonZeroVals+1
+			end
+		end
+		C.printf("\n")
+	end 
+	C.printf("number of zero kernel values = %d, nonzero values = %d\n\n",
+				zeroVals, nonZeroVals)
+end
+
+printKernel5()
+
 --blurImageLinComboSplitX()
 
---blurImageLinComboNoUnroll()
+--blurImageLinComboKernelValsArrayAccessed()
 
---blurMaskedImageLinComboNoUnroll()
+--blurMaskedImageLinComboKernelValsArrayAccessed()
 --
 --!!!!blurMaskPlaneLinComboTest()
 --!!!!blurMaskPlaneLinCombo()
@@ -4098,26 +4764,48 @@ printKernel1()
 --
 --blurMaskedImageLinComboUnrollSymbolsSplitX()
 
---blurMaskedImageLinComboNoUnroll()
 
 --blurMaskedImageLinComboUnrollSymbolsTile()
 
 --blurMaskedImageLinComboVectorize8UnrollSymbolsInterp()
 --blurMaskedImageLinComboUnrollSymbolsInterpolate()
 --blurMaskedImageLinComboVectorizeAcrossKernelUnrollSymbols()
-luaBlurMaskedImageLinComboUnrollSymbols(5)
 
 
-blurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel()
+--print("maskedImage lincombo kernel Array Accessed, vectorized 8:")
+--for boundingBoxSize = 1, 13 do
+--	luaBlurMaskedImageLinComboKernelValsArrayAccessedVectorized8(boundingBoxSize)
+--end
 
-blurMaskedImageLinComboVectorize8UnrollSymbols()
+--print("maskedImage lincombo kernel Array Accessed:")
+--for boundingBoxSize = 1, 13 do
+--	luaBlurMaskedImageLinComboKernelValsArrayAccessed(boundingBoxSize)
+--end
+
+print("maskedImage lincombo unroll symbols:")
+for boundingBoxSize = 1, 13 do
+	luaBlurMaskedImageLinComboUnrollSymbols(boundingBoxSize)
+end
+
+print("maskedImage lincombo unroll symbols double precision:")
+for boundingBoxSize = 1, 13 do
+	luaBlurMaskedImageLinComboUnrollSymbolsDoublePrecisionKernel(boundingBoxSize)
+end
+
+print("maskedImage lincombo unroll symbols vectorized 8:")
+for boundingBoxSize = 1, 13 do
+	luaBlurMaskedImageLinComboVectorize8UnrollSymbols(boundingBoxSize)
+end
 
 --
-blurMaskedImageLinCombo()
+--blurMaskedImageLinCombo()
 --blurMaskedImageLinComboSplitX()
 
 --blurMaskedImageLinComboVectorize()
-blurMaskedImageLinComboVectorize8()
+print("maskedImage lincombo unroll, kernel set at compile, vectorized 8:")
+for boundingBoxSize = 1, 13 do
+	luaBlurMaskedImageLinComboVectorize8(boundingBoxSize)
+end
 
 
 

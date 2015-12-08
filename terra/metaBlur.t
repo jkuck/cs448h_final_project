@@ -758,11 +758,11 @@ local function metaProgramBlurMaskedImageLinComboVectorizeNoUnroll(boundingBox, 
 			for j = -boundingBox, boundingBox do
 				for i = -boundingBox, boundingBox do
 					emit quote
-						kernelVals[kernelArea*0 + kernelWidth*(j+boundingBox) + (i+boundingBox)] = [kernel1(i, j)]
-						kernelVals[kernelArea*1 + kernelWidth*(j+boundingBox) + (i+boundingBox)] = [kernel2(i, j)]
-						kernelVals[kernelArea*2 + kernelWidth*(j+boundingBox) + (i+boundingBox)] = [kernel3(i, j)]
-						kernelVals[kernelArea*3 + kernelWidth*(j+boundingBox) + (i+boundingBox)] = [kernel4(i, j)]
-						kernelVals[kernelArea*4 + kernelWidth*(j+boundingBox) + (i+boundingBox)] = [kernel5(i, j)]
+						kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5] = [kernel1(i, j)]
+						kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+1] = [kernel2(i, j)]
+						kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+2] = [kernel3(i, j)]
+						kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+3] = [kernel4(i, j)]
+						kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+4] = [kernel5(i, j)]
 					end
 				end
 			end
@@ -816,9 +816,9 @@ local function metaProgramBlurMaskedImageLinComboVectorizeNoUnroll(boundingBox, 
 							        escape
 							        	for k = 0, vectorWidth - 1 do
 							        		emit quote
-								        		curKernelValTemp[k] = curPolyVals[5*k]*kernelVals[kernelArea*0 + kernelWidth*(j+boundingBox) + (i+boundingBox)] +
-									                curPolyVals[5*k+1]*kernelVals[kernelArea*1 + kernelWidth*(j+boundingBox) + (i+boundingBox)] + curPolyVals[5*k+2]*kernelVals[kernelArea*2 + kernelWidth*(j+boundingBox) + (i+boundingBox)] + 
-									                curPolyVals[5*k+3]*kernelVals[kernelArea*3 + kernelWidth*(j+boundingBox) + (i+boundingBox)] + curPolyVals[5*k+4]*kernelVals[kernelArea*4 + kernelWidth*(j+boundingBox) + (i+boundingBox)];
+								        		curKernelValTemp[k] = curPolyVals[5*k]*kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5] +
+									                curPolyVals[5*k+1]*kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+1] + curPolyVals[5*k+2]*kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+2] + 
+									                curPolyVals[5*k+3]*kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+3] + curPolyVals[5*k+4]*kernelVals[(kernelWidth*(j+boundingBox) + (i+boundingBox))*5+4];
 
 
 								        		--curKernelValTemp[k] = polynomial1(x+k, y)*[kernel1(i, j)] +
@@ -1094,27 +1094,27 @@ end
 --local blurMaskedImageLinComboVectorizeNoUnroll = metaProgramBlurMaskedImageLinComboVectorizeNoUnroll(5, 8, "original")
 --blurMaskedImageLinComboVectorizeNoUnroll()
 
-local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 5)
-blurMaskedImageLinComboVectorize()
-local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 4)
-blurMaskedImageLinComboVectorize()
-local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 3)
-blurMaskedImageLinComboVectorize()
-local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 2)
-blurMaskedImageLinComboVectorize()
-local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 1)
-blurMaskedImageLinComboVectorize()
+
+
+--test variable number of basis kernels
+--local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 5)
+--blurMaskedImageLinComboVectorize()
+--local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 4)
+--blurMaskedImageLinComboVectorize()
+--local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 3)
+--blurMaskedImageLinComboVectorize()
+--local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 2)
+--blurMaskedImageLinComboVectorize()
+--local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original", 1)
+--blurMaskedImageLinComboVectorize()
 
 local NUMBER_OF_RUNS = 1
-
-
-
-
+local bBoxSize = 9
 --blurMaskedImageLinComboVectorizeNoUnroll()
 print("NoUnroll")
 local totalTimeNoUnroll = 0
 for i = 1, NUMBER_OF_RUNS do
-	local blurMaskedImageLinComboVectorizeNoUnroll = metaProgramBlurMaskedImageLinComboVectorizeNoUnroll(9, 8, "original")
+	local blurMaskedImageLinComboVectorizeNoUnroll = metaProgramBlurMaskedImageLinComboVectorizeNoUnroll(bBoxSize, 1, "original")
 	local t3 = terralib.currenttimeinseconds()
 	blurMaskedImageLinComboVectorizeNoUnroll:compile()
 	blurMaskedImageLinComboVectorizeNoUnroll()
@@ -1128,7 +1128,7 @@ end
 print("Unroll, polynomial is calculated at (x, y) then array accessed")
 local totalTimeUnrollFlexiblePoly = 0
 for i = 1, NUMBER_OF_RUNS do
-	local blurMaskedImageLinComboVectorizeFlexPoly = metaProgramBlurMaskedImageLinComboVectorizeUnrollFlexiblePolyCoef(9, 8, "original")
+	local blurMaskedImageLinComboVectorizeFlexPoly = metaProgramBlurMaskedImageLinComboVectorizeUnrollFlexiblePolyCoef(bBoxSize, 8, "original")
 	local t1 = terralib.currenttimeinseconds()
 	blurMaskedImageLinComboVectorizeFlexPoly:compile()
 	blurMaskedImageLinComboVectorizeFlexPoly()
@@ -1139,7 +1139,7 @@ end
 print("Unroll, polynomial AND kernel are calculated at (x, y) then array accessed")
 local totalTimeUnrollFlexiblePolyAndKernel = 0
 for i = 1, NUMBER_OF_RUNS do
-	local blurMaskedImageLinComboVectorizeFlexPolyAndKernel = metaProgramBlurMaskedImageLinComboVectorizeUnrollFlexiblePolyAndKernel(9, 8, "original")
+	local blurMaskedImageLinComboVectorizeFlexPolyAndKernel = metaProgramBlurMaskedImageLinComboVectorizeUnrollFlexiblePolyAndKernel(bBoxSize, 8, "original")
 	local t1 = terralib.currenttimeinseconds()
 	blurMaskedImageLinComboVectorizeFlexPolyAndKernel:compile()
 	blurMaskedImageLinComboVectorizeFlexPolyAndKernel()
@@ -1151,15 +1151,13 @@ end
 print("Unroll")
 local totalTimeUnroll = 0
 for i = 1, NUMBER_OF_RUNS do
-	local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(9, 8, "original")
+	local blurMaskedImageLinComboVectorize = metaProgramBlurMaskedImageLinComboVectorize(bBoxSize, 8, "original",5)
 	local t1 = terralib.currenttimeinseconds()
 	blurMaskedImageLinComboVectorize:compile()
 	blurMaskedImageLinComboVectorize()
 	local t2 = terralib.currenttimeinseconds()
 	totalTimeUnroll = totalTimeUnroll + t2-t1
 end
-
-
 print("unrolling time = "..(totalTimeUnroll/NUMBER_OF_RUNS*1000).."ms")
 print("unrolling, polynomial array access; time = "..(totalTimeUnrollFlexiblePoly/NUMBER_OF_RUNS*1000).."ms")
 print("unrolling, polynomial AND kernel array access; time = "..(totalTimeUnrollFlexiblePolyAndKernel/NUMBER_OF_RUNS*1000).."ms")
