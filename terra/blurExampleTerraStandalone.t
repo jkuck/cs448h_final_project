@@ -9,12 +9,12 @@ local C = terralib.includecstring [[
 
 --local boundingBox = 2
 local vectorWidth = 8
-local luaNumberOfBasisKernels = 27
-local luaNumberOfFuncParams = 3
-local luaBoundingBox = 11
-local boundingBox = 11
-local kernelWidth = 2*luaBoundingBox+1
-local kernelSize = 2*luaBoundingBox+1
+local kernelSize = 19
+local luaNumberOfBasisKernels = 5
+local luaNumberOfFuncParams = 10
+local luaBoundingBox = (kernelSize-1)/2
+local boundingBox = (kernelSize-1)/2
+local kernelWidth = kernelSize
 local luaKernelArea = kernelSize*kernelSize
 --local luaNumberOfBasisKernels = 5
 --local luaNumberOfFuncParams = 10
@@ -194,7 +194,7 @@ local terra convolve(inputImg:&float, inputVar:&float, inputMask:&uint16,
 				C.printf("\n")
 			end
 	
-			C.printf("Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+			C.printf("Output Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
 			for i=boundingBox,boundingBox+10 do
 				for j=boundingBox,boundingBox+10 do
 					C.printf("%f\t", outputVar[i*imageWidth + j])
@@ -202,7 +202,7 @@ local terra convolve(inputImg:&float, inputVar:&float, inputMask:&uint16,
 				C.printf("\n")
 			end
 	
-			C.printf("Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+			C.printf("Output Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
 			for i=boundingBox,boundingBox+10 do
 				for j=boundingBox,boundingBox+10 do
 					C.printf("%d\t", outputMask[i*imageWidth + j])
@@ -311,13 +311,13 @@ local terra convolveRefactor(inputImg:&float, inputVar:&float, inputMask:&uint16
        										curKernelValTemp[k] = newKernelArray[0][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]	
 						        				+ newKernelArray[1][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*([float](x) - [float](imageWidth/2))/[float](imageWidth/2) 
 						        				+ newKernelArray[2][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*([float](y) - [float](imageHeight/2))/[float](imageHeight/2)
-						        				--+ newKernelArray[3][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x 
-						        				--+ newKernelArray[4][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y
-						        				--+ newKernelArray[5][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y 
-						        				--+ newKernelArray[6][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*x
-						        				--+ newKernelArray[7][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*y 
-						        				--+ newKernelArray[8][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y*y
-						        				--+ newKernelArray[9][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y*y
+						        				+ newKernelArray[3][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x 
+						        				+ newKernelArray[4][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y
+						        				+ newKernelArray[5][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y 
+						        				+ newKernelArray[6][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*x
+						        				+ newKernelArray[7][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*y 
+						        				+ newKernelArray[8][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y*y
+						        				+ newKernelArray[9][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y*y
 						        		end
 						        	end
 						        	emit quote
@@ -779,7 +779,7 @@ end
 --convolve:printpretty()
 
 --the first term is the name in the .o and .h files, the second name is the name in this file
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC = convolveRefactor})
+terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC = convolve})
 
 
 
