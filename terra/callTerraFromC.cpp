@@ -18,13 +18,13 @@
 
 //to test double precision kernel define this
 //also define USE_5_KERNELS and 
-#define DOUBLE_PRECISION_KERNEL
+//#define DOUBLE_PRECISION_KERNEL
 
 //can be one of the following strings:
 //"gaussian_contains_denormal_numbers"
 //"gaussian_denormals_zeroed" 
 //"random" //output will not match LSST, but for checking performance
-#define KERNEL_INFO "gaussian_contains_denormal_numbers"
+#define KERNEL_INFO "gaussian_denormals_zeroed"
 
 //smallest kernel value if gaussian_denormals_zeroed
 #define MIN_KERNEL_VAL pow(10, -30) 
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 //    for(int kernelSize = 3; kernelSize <=27; kernelSize = kernelSize+2){
         int numberOfBasisKernels = 5;
         int numberOfFuncCoef = 10;
-        int kernelSize = 27; //kernel width and height
+        int kernelSize = 23; //kernel width and height
         int kernelArea = kernelSize*kernelSize;
         int boundingBox = (kernelSize-1)/2;
         

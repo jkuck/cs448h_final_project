@@ -8,8 +8,8 @@ local C = terralib.includecstring [[
 ]]
 
 --local boundingBox = 2
-local vectorWidth = 8
-local kernelSize = 27
+local vectorWidth = 1
+local kernelSize = 19
 local luaNumberOfBasisKernels = 5
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
@@ -967,42 +967,42 @@ end
 
 --the first term is the name in the .o and .h files, the second name is the name in this file
 
-local kerneSize3 = genConvolve(27)
+local kernelSize3 = genConvolve(23)
 
 
---local kerneSize5 = genConvolve(5)
---local kerneSize7 = genConvolve(7)
---local kerneSize9 = genConvolve(9)
---local kerneSize11 = genConvolve(11)
---local kerneSize13 = genConvolve(13)
---local kerneSize15 = genConvolve(15)
---local kerneSize17 = genConvolve(17)
---local kerneSize19 = genConvolve(19)
---local kerneSize21 = genConvolve(21)
---local kerneSize23 = genConvolve(23)
---local kerneSize25 = genConvolve(25)
---local kerneSize27 = genConvolve(27)
+--local kernelSize5 = genConvolve(5)
+--local kernelSize7 = genConvolve(7)
+--local kernelSize9 = genConvolve(9)
+--local kernelSize11 = genConvolve(11)
+--local kernelSize13 = genConvolve(13)
+--local kernelSize15 = genConvolve(15)
+--local kernelSize17 = genConvolve(17)
+--local kernelSize19 = genConvolve(19)
+--local kernelSize21 = genConvolve(21)
+--local kernelSize23 = genConvolve(23)
+--local kernelSize25 = genConvolve(25)
+--local kernelSize27 = genConvolve(27)
 
 
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = convolveDoublePrecisionKernel})
---terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kerneSize5})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kerneSize3,
---												  terraFuncNameInC5 = kerneSize5})
+terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = kernelSize3})
+--terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
+--												  terraFuncNameInC5 = kernelSize5})
 
 
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = kerneSize3})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC5  = kerneSize5})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC7  = kerneSize7})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC9  = kerneSize9})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC11 = kerneSize11})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC13 = kerneSize13})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC15 = kerneSize15})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC17 = kerneSize17})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC19 = kerneSize19})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC21 = kerneSize21})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC23 = kerneSize23})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC25 = kerneSize25})
---terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC27 = kerneSize27})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = kernelSize3})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC5  = kernelSize5})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC7  = kernelSize7})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC9  = kernelSize9})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC11 = kernelSize11})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC13 = kernelSize13})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC15 = kernelSize15})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC17 = kernelSize17})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC19 = kernelSize19})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC21 = kernelSize21})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC23 = kernelSize23})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC25 = kernelSize25})
+--terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC27 = kernelSize27})
 
 
 
