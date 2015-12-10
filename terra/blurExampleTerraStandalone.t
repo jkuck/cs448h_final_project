@@ -9,7 +9,7 @@ local C = terralib.includecstring [[
 
 --local boundingBox = 2
 local vectorWidth = 8
-local kernelSize = 19
+local kernelSize = 27
 local luaNumberOfBasisKernels = 5
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
@@ -42,6 +42,12 @@ end
 
 
 local function zerofloatVec(vectorWidth)
+	local zeros = {}
+	for i=1,vectorWidth do zeros[i] = `0.f end
+	return `vector(zeros)
+end
+
+local function zeroDoubleVec(vectorWidth)
 	local zeros = {}
 	for i=1,vectorWidth do zeros[i] = `0.f end
 	return `vector(zeros)
@@ -254,9 +260,9 @@ local terra convolveDoublePrecisionKernel(inputImg:&float, inputVar:&float, inpu
                     		imageWidth:int, imageHeight:int, kernelArray:&&double, 
                     		funcParams:&float, numberOfBasisKernels:int,
 							kernelWidth:int, kernelHeight:int, numberOfFuncCoef:int)
-	C.printf("Begin Terra function\n")
-	C.printf("imageWidth = %d, imageHeight = %d, numberOfBasisKernels = %d, kernelWidth = %d, kernelHeight = %d, numberOfFuncCoef = %d\n", imageWidth,
-		imageHeight, numberOfBasisKernels, kernelWidth, kernelHeight, numberOfFuncCoef)
+--	C.printf("Begin Terra function\n")
+--	C.printf("imageWidth = %d, imageHeight = %d, numberOfBasisKernels = %d, kernelWidth = %d, kernelHeight = %d, numberOfFuncCoef = %d\n", imageWidth,
+--		imageHeight, numberOfBasisKernels, kernelWidth, kernelHeight, numberOfFuncCoef)
 	escape
 		local getBitMask = genGetBitMaskDouble(vectorWidth) --getBitMask is a terra function
 --		assert(kernelWidth == kernelHeight, "kernel is not square")
@@ -296,8 +302,8 @@ local terra convolveDoublePrecisionKernel(inputImg:&float, inputVar:&float, inpu
 --							for j = -boundingBox, boundingBox do
 --						        for i = -boundingBox, boundingBox do
 							emit quote
-								for j = -boundingBox, boundingBox +1 do
-							        for i = -boundingBox, boundingBox + 1 do
+								for j = -luaBoundingBox, luaBoundingBox +1 do
+							        for i = -luaBoundingBox, luaBoundingBox + 1 do
 								        escape
 								        	for k = 0, vectorWidth - 1 do
 								        		emit quote
@@ -357,60 +363,60 @@ local terra convolveDoublePrecisionKernel(inputImg:&float, inputVar:&float, inpu
 			end
 
 			var t2 = C.clock()
-			C.printf("\n\nVectorized %d wide masked image lin combo %dx%d blur Terra:\n", vectorWidth, 1+2*boundingBox, 1+2*boundingBox)
-			C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1)/1000.0)
-			C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
-	
-			C.printf("Input image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-			for i=boundingBox,boundingBox+10 do
-				for j=boundingBox,boundingBox+10 do
-					C.printf("%f\t", inputImg[i*imageWidth + j])
-				end
-				C.printf("\n")
-			end
-
-			C.printf("Output image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-			for i=boundingBox,boundingBox+10 do
-				for j=boundingBox,boundingBox+10 do
-					C.printf("%f\t", outputImg[i*imageWidth + j])
-				end
-				C.printf("\n")
-			end
-	
-			C.printf("Output Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-			for i=boundingBox,boundingBox+10 do
-				for j=boundingBox,boundingBox+10 do
-					C.printf("%f\t", outputVar[i*imageWidth + j])
-				end
-				C.printf("\n")
-			end
-	
-			C.printf("Output Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
-			for i=boundingBox,boundingBox+10 do
-				for j=boundingBox,boundingBox+10 do
-					C.printf("%d\t", outputMask[i*imageWidth + j])
-				end
-				C.printf("\n")
-			end
-
-			C.printf("Function coefficients:\n")
-			for i = 0, numberOfBasisKernels do
-				for j = 0, numberOfFuncCoef do
-					C.printf("%f\t", funcParams[i*numberOfFuncCoef + j])
-				end
-				C.printf("\n")
-			end
-
-			C.printf("Basis kernels:\n")
-			for h = 0, numberOfBasisKernels do
-				for j = 0, (boundingBox*2+1) do
-					for i = 0, (boundingBox*2+1) do
-						C.printf("%f\t", kernelArray[h][j*(boundingBox*2+1) + i])
-					end
-					C.printf("\n")
-				end
-				C.printf("\n")
-			end
+--			C.printf("\n\nVectorized %d wide masked image lin combo %dx%d blur Terra:\n", vectorWidth, 1+2*boundingBox, 1+2*boundingBox)
+--			C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1)/1000.0)
+--			C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--	
+--			C.printf("Input image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--			for i=boundingBox,boundingBox+10 do
+--				for j=boundingBox,boundingBox+10 do
+--					C.printf("%f\t", inputImg[i*imageWidth + j])
+--				end
+--				C.printf("\n")
+--			end
+--
+--			C.printf("Output image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--			for i=boundingBox,boundingBox+10 do
+--				for j=boundingBox,boundingBox+10 do
+--					C.printf("%f\t", outputImg[i*imageWidth + j])
+--				end
+--				C.printf("\n")
+--			end
+--	
+--			C.printf("Output Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--			for i=boundingBox,boundingBox+10 do
+--				for j=boundingBox,boundingBox+10 do
+--					C.printf("%f\t", outputVar[i*imageWidth + j])
+--				end
+--				C.printf("\n")
+--			end
+--	
+--			C.printf("Output Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--			for i=boundingBox,boundingBox+10 do
+--				for j=boundingBox,boundingBox+10 do
+--					C.printf("%d\t", outputMask[i*imageWidth + j])
+--				end
+--				C.printf("\n")
+--			end
+--
+--			C.printf("Function coefficients:\n")
+--			for i = 0, numberOfBasisKernels do
+--				for j = 0, numberOfFuncCoef do
+--					C.printf("%f\t", funcParams[i*numberOfFuncCoef + j])
+--				end
+--				C.printf("\n")
+--			end
+--
+--			C.printf("Basis kernels:\n")
+--			for h = 0, numberOfBasisKernels do
+--				for j = 0, (boundingBox*2+1) do
+--					for i = 0, (boundingBox*2+1) do
+--						C.printf("%f\t", kernelArray[h][j*(boundingBox*2+1) + i])
+--					end
+--					C.printf("\n")
+--				end
+--				C.printf("\n")
+--			end
 
 
 

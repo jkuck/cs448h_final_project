@@ -18,14 +18,13 @@
 
 //to test double precision kernel define this
 //also define USE_5_KERNELS and 
-//make KERNEL_INFO "random"
 #define DOUBLE_PRECISION_KERNEL
 
 //can be one of the following strings:
 //"gaussian_contains_denormal_numbers"
 //"gaussian_denormals_zeroed" 
 //"random" //output will not match LSST, but for checking performance
-#define KERNEL_INFO "random"
+#define KERNEL_INFO "gaussian_contains_denormal_numbers"
 
 //smallest kernel value if gaussian_denormals_zeroed
 #define MIN_KERNEL_VAL pow(10, -30) 
@@ -208,18 +207,34 @@ int main(int argc, char *argv[]) {
             for(int j = 0; j < kernelSize; j++){
                 for(int i = 0; i < kernelSize; i++){
                     if(KERNEL_INFO == "gaussian_contains_denormal_numbers"){
-                        float curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
-                        if(curVal < COUNT_AS_DENORMAL){
-                            denormalValCount++;
-                        }
+                        #ifdef DOUBLE_PRECISION_KERNEL
+                            double curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
+                            if(curVal < COUNT_AS_DENORMAL){
+                                denormalValCount++;
+                            }
                             curKernel[j*kernelSize+i] = curVal;
+                        #else
+                            float curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
+                            if(curVal < COUNT_AS_DENORMAL){
+                                denormalValCount++;
+                            }
+                            curKernel[j*kernelSize+i] = curVal;
+                        #endif
                     }
                     else if(KERNEL_INFO == "gaussian_denormals_zeroed"){
-                        float curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
-                        if(curVal > MIN_KERNEL_VAL)
-                            curKernel[j*kernelSize+i] = curVal;
-                        else
-                            curKernel[j*kernelSize+i] = 0.0f;
+                        #ifdef DOUBLE_PRECISION_KERNEL
+                            double curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
+                            if(curVal > MIN_KERNEL_VAL)
+                                curKernel[j*kernelSize+i] = curVal;
+                            else
+                                curKernel[j*kernelSize+i] = 0.0f;
+                        #else
+                            float curVal = kernelFuncs[ker](i-boundingBox, j-boundingBox);
+                            if(curVal > MIN_KERNEL_VAL)
+                                curKernel[j*kernelSize+i] = curVal;
+                            else
+                                curKernel[j*kernelSize+i] = 0.0f;
+                        #endif
                     }
                     else if(KERNEL_INFO == "random"){
                         #ifdef DOUBLE_PRECISION_KERNEL
