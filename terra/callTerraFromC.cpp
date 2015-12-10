@@ -159,7 +159,7 @@ double kernelDouble(int i, int j, double sigmaX, double sigmaY, double theta){
 
 int main(int argc, char *argv[]) {
 //    for(int kernelSize = 3; kernelSize <=27; kernelSize = kernelSize+2){
-        int numberOfBasisKernels = 15;
+        int numberOfBasisKernels = 10;
         int numberOfFuncCoef = 10;
         int kernelSize = 23; //kernel width and height
         int kernelArea = kernelSize*kernelSize;

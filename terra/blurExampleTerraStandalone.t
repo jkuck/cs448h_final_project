@@ -10,7 +10,7 @@ local C = terralib.includecstring [[
 --local boundingBox = 2
 local vectorWidth = 8
 local kernelSize = 23
-local luaNumberOfBasisKernels = 15
+local luaNumberOfBasisKernels = 2
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
 local boundingBox = (kernelSize-1)/2
@@ -139,9 +139,10 @@ local function genConvolve(kenelSize)
 							        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
 							        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
 							        		end
-	--						        		for l = 1, numberOfBasisKernels-1 do 
-							        		for l = 1, luaNumberOfBasisKernels-1 do 
-							        			emit quote
+							        		emit quote
+							        			for l = 1, numberOfBasisKernels do 
+							        		--for l = 1, luaNumberOfBasisKernels-1 do 
+							        			--emit quote
 							        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
 							        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
 							        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
@@ -462,6 +463,8 @@ local terra convolveRefactor(inputImg:&float, inputVar:&float, inputMask:&uint16
 				end
 			end
 
+			var t1a = C.clock()
+
 
 			var zeroVec : vector(float, vectorWidth) = [zerofloatVec(vectorWidth)]
 			for y = boundingBox, imageHeight-boundingBox do
@@ -545,7 +548,8 @@ local terra convolveRefactor(inputImg:&float, inputVar:&float, inputMask:&uint16
 
 			var t2 = C.clock()
 --			C.printf("\n\nVectorized %d wide masked image lin combo %dx%d blur Terra:\n", vectorWidth, 1+2*boundingBox, 1+2*boundingBox)
---			C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1)/1000.0)
+			C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1)/1000.0)
+			C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation w/o refactorization time took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1a)/1000.0)
 --			C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
 --	
 --			C.printf("Input image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
