@@ -10,7 +10,7 @@ local C = terralib.includecstring [[
 --local boundingBox = 2
 local vectorWidth = 8
 local kernelSize = 23
-local luaNumberOfBasisKernels = 5
+local luaNumberOfBasisKernels = 15
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
 local boundingBox = (kernelSize-1)/2
@@ -984,7 +984,7 @@ local kernelSize3 = genConvolve(23)
 --local kernelSize27 = genConvolve(27)
 
 
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = convolveRefactor})
+terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = kernelSize3})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
