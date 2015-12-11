@@ -12,9 +12,9 @@
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 
 
-//#define TEST_VS_LSST
+#define TEST_VS_LSST
 //#define PRINT_CORNERS_OF_OUTPUT_AND_REFERENCE //only define if TEST_VS_LSST is defined
-//#define USE_5_KERNELS 
+#define USE_5_KERNELS 
 
 //to test double precision kernel define this
 //also define USE_5_KERNELS and 
@@ -24,7 +24,7 @@
 //"gaussian_contains_denormal_numbers"
 //"gaussian_denormals_zeroed" 
 //"random" //output will not match LSST, but for checking performance
-#define KERNEL_INFO "random"
+#define KERNEL_INFO "gaussian_denormals_zeroed"
 
 //smallest kernel value if gaussian_denormals_zeroed
 #define MIN_KERNEL_VAL pow(10, -30) 
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 //    for(int kernelSize = 3; kernelSize <=27; kernelSize = kernelSize+2){
         int numberOfBasisKernels = 5;
         int numberOfFuncCoef = 10;
-        int kernelSize = 23; //kernel width and height
+        int kernelSize = 19; //kernel width and height
         int kernelArea = kernelSize*kernelSize;
         int boundingBox = (kernelSize-1)/2;
         

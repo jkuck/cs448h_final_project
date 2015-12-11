@@ -9,7 +9,7 @@ local C = terralib.includecstring [[
 
 --local boundingBox = 2
 local vectorWidth = 8
-local kernelSize = 23
+local kernelSize = 19
 local luaNumberOfBasisKernels = 5
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
@@ -308,6 +308,212 @@ local function genConvolve(kenelSize)
 
 	return returnFunc
 end
+
+
+
+	local convolveBasisKernelSeparatelyAtAPoint = terra(inputImg:&float, inputVar:&float, inputMask:&uint16,
+								outputImg:&float, outputVar:&float, outputMask:&uint16,
+	                    		imageWidth:int, imageHeight:int, kernelArray:&&float, 
+	                    		funcParams:&float, numberOfBasisKernels:int,
+								kernelWidth:int, kernelHeight:int, numberOfFuncCoef:int)
+--		C.printf("Begin Terra function\n")
+--		C.printf("imageWidth = %d, imageHeight = %d, numberOfBasisKernels = %d, kernelWidth = %d, kernelHeight = %d, numberOfFuncCoef = %d\n", imageWidth,
+--			imageHeight, numberOfBasisKernels, kernelWidth, kernelHeight, numberOfFuncCoef)
+		escape
+			local getBitMask = genGetBitMask(vectorWidth) --getBitMask is a terra function
+	--		assert(kernelWidth == kernelHeight, "kernel is not square")
+	--		assert(kernelWidth%2 == 1, "kernel width is even")
+			local boundingBox = symbol()
+
+			local xxVal = symbol()
+			local xyVal = symbol()
+			local yyVal = symbol()
+			local xxxVal = symbol()
+			local xxyVal = symbol()
+			local xyyVal = symbol()
+			local yyyVal = symbol()
+			if testNumberOfBasisKernelsUnknownAtCompile then
+				emit quote
+					var [xxVal]  : float
+					var [xyVal]  : float
+					var [yyVal]  : float
+					var [xxxVal] : float
+					var [xxyVal] : float
+					var [xyyVal] : float
+					var [yyyVal] : float										
+				end
+			end
+
+
+			emit quote
+				var [boundingBox] = (kernelWidth - 1)/2
+
+				var t1 = C.clock()
+
+
+				var zeroVec : vector(float, vectorWidth) = [zerofloatVec(vectorWidth)]
+				for y = boundingBox, imageHeight-boundingBox do
+					for x = boundingBox, (imageWidth-boundingBox), vectorWidth do
+		 				escape
+	--	 					if(method == "original") then
+		 					if(true) then
+		 						local curKernelVal = symbol()
+		 						local curKernelValTemp = symbol()
+		 						local curImOut = symbol()
+		 						local curVarOut= symbol()
+		 						local curMaskOut = symbol()
+		 						local curNorm = symbol()
+			 					emit quote
+					 				var [curKernelVal] : vector(float,vectorWidth)
+									var [curKernelValTemp] : float[vectorWidth]
+
+									var [curImOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+					--				var curImOut : &vector(float,vectorWidth) = [&vector(float,vectorWidth)](&outputImg[y*imageWidth + x])
+									var [curVarOut] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+									var [curMaskOut] : vector(uint16, vectorWidth) = [zeroUInt16Vec(vectorWidth)]
+
+									var [curNorm] : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+					--				var curImOutVec = @[&vector(float,4)](&outputImg[y*imageWidth + x])
+								end
+	--							for j = -boundingBox, boundingBox do
+	--						        for i = -boundingBox, boundingBox do
+
+								if testNumberOfBasisKernelsUnknownAtCompile then
+									emit quote
+										xxVal = [double](x)*[double](x)
+										xyVal = [double](x)*[double](y)
+										yyVal = [double](y)*[double](y)
+										xxxVal  = [double](x)*[double](x)*[double](x)
+										xxyVal  = [double](x)*[double](x)*[double](y)
+										xyyVal  = [double](x)*[double](y)*[double](y)
+										yyyVal  = [double](y)*[double](y)*[double](y)	
+									end
+								end									
+
+								emit quote
+							for l = 0, numberOfBasisKernels do
+
+									var curBasisImOut : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+									var curBasisVarOut : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+									var curBasisNorm : vector(float,vectorWidth) = [zerofloatVec(vectorWidth)]
+
+
+								for j = -luaBoundingBox, luaBoundingBox +1 do
+							        for i = -luaBoundingBox, luaBoundingBox + 1 do
+							        escape
+							        	for k = 0, vectorWidth - 1 do
+								        		emit quote				
+								        			curKernelValTemp[k] = kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]
+								        		end
+							        	end
+							        	emit quote
+								            curKernelVal = @[&vector(float,vectorWidth)](&curKernelValTemp[0])
+
+								            var curImInVec = @[&vector(float,vectorWidth)](&inputImg[(y+j)*imageWidth + x+i])
+								            var curVarInVec = @[&vector(float,vectorWidth)](&inputVar[(y+j)*imageWidth + x+i])
+								            var curMaskInVec = @[&vector(uint16,vectorWidth)](&inputMask[(y+j)*imageWidth + x+i])
+
+
+								            curBasisImOut = curBasisImOut + curImInVec*curKernelVal; 
+								            curBasisVarOut = curBasisVarOut + curVarInVec*curKernelVal*curKernelVal;
+
+								            var bitMask : vector(uint16, vectorWidth) = getBitMask(curKernelVal, zeroVec)
+								            curMaskOut = curMaskOut or (curMaskInVec and bitMask)
+
+								            curBasisNorm = curBasisNorm + curKernelVal;
+								        end
+							        end
+							    	end
+								end
+									var curPoly : vector(float,vectorWidth) = [vector(float,vectorWidth)](funcParams[l*numberOfFuncCoef + 0]
+								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
+								        				+ funcParams[l*numberOfFuncCoef + 3]*xxVal + funcParams[l*numberOfFuncCoef + 4]*xyVal
+								        				+ funcParams[l*numberOfFuncCoef + 5]*yyVal + funcParams[l*numberOfFuncCoef + 6]*xxxVal
+								        				+ funcParams[l*numberOfFuncCoef + 7]*xxyVal + funcParams[l*numberOfFuncCoef + 8]*xyyVal
+								        				+ funcParams[l*numberOfFuncCoef + 9]*yyyVal)
+									curImOut = curImOut + curBasisImOut*curPoly
+									curVarOut = curVarOut + curBasisVarOut*curPoly*curPoly
+									curNorm = curNorm + curBasisNorm*curPoly
+							end
+								end
+							    emit quote
+						    		curImOut = curImOut/curNorm
+						    		curVarOut = curVarOut/(curNorm*curNorm)
+								end
+								for i = 0, vectorWidth-1 do
+						    		emit quote
+							    		outputImg[y*imageWidth + x+i] = curImOut[i]	
+									    outputVar[y*imageWidth + x+i] = curVarOut[i]
+						    			outputMask[y*imageWidth + x+i] = curMaskOut[i]
+						    		end
+						    	end
+						    end				
+						end
+					end
+				end
+
+				var t2 = C.clock()
+--				C.printf("\n\nVectorized %d wide masked image lin combo %dx%d blur Terra:\n", vectorWidth, 1+2*boundingBox, 1+2*boundingBox)
+--				C.printf("outputImg[boundingBox*imageWidth + boundingBox] = %f, computation took: %f ms\n", outputImg[boundingBox*imageWidth + boundingBox],  (t2-t1)/1000.0)
+--				C.printf("C.CLOCKS_PER_SEC = %d\n", C.CLOCKS_PER_SEC)
+--		
+--				C.printf("Input image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--				for i=boundingBox,boundingBox+10 do
+--					for j=boundingBox,boundingBox+10 do
+--						C.printf("%f\t", inputImg[i*imageWidth + j])
+--					end
+--					C.printf("\n")
+--				end
+--
+--				C.printf("Output image plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--				for i=boundingBox,boundingBox+10 do
+--					for j=boundingBox,boundingBox+10 do
+--						C.printf("%f\t", outputImg[i*imageWidth + j])
+--					end
+--					C.printf("\n")
+--				end
+--		
+--				C.printf("Output Variance plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--				for i=boundingBox,boundingBox+10 do
+--					for j=boundingBox,boundingBox+10 do
+--						C.printf("%f\t", outputVar[i*imageWidth + j])
+--					end
+--					C.printf("\n")
+--				end
+--		
+--				C.printf("Output Mask plane, 10x10 box begining at (boundingBox,boundingBox)\n")
+--				for i=boundingBox,boundingBox+10 do
+--					for j=boundingBox,boundingBox+10 do
+--						C.printf("%d\t", outputMask[i*imageWidth + j])
+--					end
+--					C.printf("\n")
+--				end
+--
+--				C.printf("Function coefficients:\n")
+--				for i = 0, numberOfBasisKernels do
+--					for j = 0, numberOfFuncCoef do
+--						C.printf("%f\t", funcParams[i*numberOfFuncCoef + j])
+--					end
+--					C.printf("\n")
+--				end
+--
+--				C.printf("Basis kernels:\n")
+--				for h = 0, numberOfBasisKernels do
+--					for j = 0, (luaBoundingBox*2+1) do
+--						for i = 0, (luaBoundingBox*2+1) do
+--							C.printf("%f\t", kernelArray[h][j*(luaBoundingBox*2+1) + i])
+--						end
+--						C.printf("\n")
+--					end
+--					C.printf("\n")
+--				end
+
+
+
+			end
+		end
+	end
+
 
 
 local terra convolveDoublePrecisionKernel(inputImg:&float, inputVar:&float, inputMask:&uint16,
@@ -1049,7 +1255,7 @@ end
 
 local plainConvolve = genConvolve(23)
 
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = plainConvolve})
+terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = convolveBasisKernelSeparatelyAtAPoint})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
