@@ -10,7 +10,7 @@ local C = terralib.includecstring [[
 --local boundingBox = 2
 local vectorWidth = 8
 local kernelSize = 19
-local luaNumberOfBasisKernels = 5
+local luaNumberOfBasisKernels = -1
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
 local boundingBox = (kernelSize-1)/2
@@ -22,7 +22,7 @@ local luaKernelArea = kernelSize*kernelSize
 local interpDist = 10
 local method = "original"
 
-local testNumberOfBasisKernelsUnknownAtCompile = false
+local testNumberOfBasisKernelsUnknownAtCompile = true
 
 local terra getInfoFromLSST(inputImg:&float, inputVar:&float, inputMask:&uint16,
 							outputImg:&float, outputVar:&float, outputMask:&uint16,
@@ -150,13 +150,13 @@ local function genConvolve(kenelSize)
 
 								if testNumberOfBasisKernelsUnknownAtCompile then
 									emit quote
-										xxVal = x*x
-										xyVal = x*y
-										yyVal = y*y
-										xxxVal  = x*x*x
-										xxyVal  = x*x*y
-										xyyVal  = x*y*y
-										yyyVal  = y*y*y	
+										xxVal = [double](x)*[double](x)
+										xyVal = [double](x)*[double](y)
+										yyVal = [double](y)*[double](y)
+										xxxVal  = [double](x)*[double](x)*[double](x)
+										xxyVal  = [double](x)*[double](x)*[double](y)
+										xyyVal  = [double](x)*[double](y)*[double](y)
+										yyyVal  = [double](y)*[double](y)*[double](y)	
 									end
 								end									
 
@@ -168,33 +168,33 @@ local function genConvolve(kenelSize)
 							        	for k = 0, vectorWidth - 1 do
 							        		if testNumberOfBasisKernelsUnknownAtCompile then
 								        		emit quote
-								        			if(x*x ~= xxVal) then
-								        				C.printf("xx differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(x*y ~= xyVal) then
-								        				C.printf("xy differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(y*y ~= yyVal) then
-								        				C.printf("yy differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(x*x*y ~= xxyVal) then
-								        				C.printf("xxy differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(x*y*y ~= xyyVal) then
-								        				C.printf("xx differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(y*y*y ~= yyyVal) then
-								        				C.printf("yyy differs at x=%d, y = %d", x, y)
-								        			end
-
-								        			if(x*x*x ~= xxxVal) then
-								        				C.printf("xxx differs at x=%d, y = %d", x, y)
-								        			end
+--								        			if(x*x ~= xxVal) then
+--								        				C.printf("xx differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(x*y ~= xyVal) then
+--								        				C.printf("xy differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(y*y ~= yyVal) then
+--								        				C.printf("yy differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(x*x*y ~= xxyVal) then
+--								        				C.printf("xxy differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(x*y*y ~= xyyVal) then
+--								        				C.printf("xx differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(y*y*y ~= yyyVal) then
+--								        				C.printf("yyy differs at x=%d, y = %d", x, y)
+--								        			end
+--
+--								        			if(x*x*x ~= xxxVal) then
+--								        				C.printf("xxx differs at x=%d, y = %d", x, y)
+--								        			end
 
 
 
@@ -205,10 +205,10 @@ local function genConvolve(kenelSize)
 								        				+ funcParams[0*numberOfFuncCoef + 7]*xxyVal + funcParams[0*numberOfFuncCoef + 8]*xyyVal
 								        				+ funcParams[0*numberOfFuncCoef + 9]*yyyVal)	
 								        		end
-								        		--emit quote
-								        		--	for l = 1, numberOfBasisKernels do 
-								        		for l = 1, luaNumberOfBasisKernels-1 do 
-								        			emit quote
+								        		emit quote
+								        			for l = 1, numberOfBasisKernels do 
+								        		--for l = 1, luaNumberOfBasisKernels-1 do 
+								        		--	emit quote
 								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
 								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
 								        				+ funcParams[l*numberOfFuncCoef + 3]*xxVal + funcParams[l*numberOfFuncCoef + 4]*xyVal
@@ -216,9 +216,9 @@ local function genConvolve(kenelSize)
 								        				+ funcParams[l*numberOfFuncCoef + 7]*xxyVal + funcParams[l*numberOfFuncCoef + 8]*xyyVal
 								        				+ funcParams[l*numberOfFuncCoef + 9]*yyyVal)
 
-								        			if(funcParams[l*numberOfFuncCoef + 3]*x*x ~= funcParams[l*numberOfFuncCoef + 3]*xxVal) then
-								        				C.printf("xx differs at x=%d, y = %d, funcParams[l*numberOfFuncCoef + 3]*x*x = %f, funcParams[l*numberOfFuncCoef + 3]*xxVal = %f\n\n", x, y, funcParams[l*numberOfFuncCoef + 3]*x*x, funcParams[l*numberOfFuncCoef + 3]*xxVal)
-								        			end
+								        			--if(funcParams[l*numberOfFuncCoef + 3]*x*x ~= funcParams[l*numberOfFuncCoef + 3]*xxVal) then
+								        			--	C.printf("xx differs at x=%d, y = %d, funcParams[l*numberOfFuncCoef + 3]*x*x = %f, funcParams[l*numberOfFuncCoef + 3]*xxVal = %f\n\n", x, y, funcParams[l*numberOfFuncCoef + 3]*x*x, funcParams[l*numberOfFuncCoef + 3]*xxVal)
+								        			--end
 
 								        			--if(funcParams[l*numberOfFuncCoef + 4]*x*y ~= funcParams[l*numberOfFuncCoef + 4]*xyVal) then
 								        			--	C.printf("xy differs at x=%d, y = %d", x, y)
@@ -427,20 +427,27 @@ local terra convolveDoublePrecisionKernel(inputImg:&float, inputVar:&float, inpu
 								        		emit quote
 		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
 								        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
-								        				+ funcParams[0*numberOfFuncCoef + 3]*x*x + funcParams[0*numberOfFuncCoef + 4]*x*y
-								        				+ funcParams[0*numberOfFuncCoef + 5]*y*y + funcParams[0*numberOfFuncCoef + 6]*x*x*x
-								        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
-								        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
+								        				+ funcParams[0*numberOfFuncCoef + 3]*(x*x) + funcParams[0*numberOfFuncCoef + 4]*(x*y)
+								        				+ funcParams[0*numberOfFuncCoef + 5]*(y*y) + funcParams[0*numberOfFuncCoef + 6]*(x*x*x)
+								        				+ funcParams[0*numberOfFuncCoef + 7]*(x*x*y) + funcParams[0*numberOfFuncCoef + 8]*(x*y*y)
+								        				+ funcParams[0*numberOfFuncCoef + 9]*(y*y*y) )	
 								        		end
 		--						        		for l = 1, numberOfBasisKernels-1 do 
 								        		for l = 1, luaNumberOfBasisKernels-1 do 
 								        			emit quote
+								        			var xDouble : double = [double] (x)
+
+								        			if(funcParams[l*numberOfFuncCoef + 3]*xDouble*xDouble*xDouble ~= funcParams[l*numberOfFuncCoef + 3]*[double](x*x*x)) then
+								        				C.printf(" differs at x=%d, y = %d, funcParams[l*numberOfFuncCoef + 3]*xDouble*xDouble*xDouble = %f, funcParams[l*numberOfFuncCoef + 3]*(xDouble*xDouble*xDouble) = %f, funcParams[l*numberOfFuncCoef + 3] = %f, funcParams[l*numberOfFuncCoef + 3]*[double](xDouble*xDouble*xDouble) = %f\n\n", x, y, funcParams[l*numberOfFuncCoef + 3]*xDouble*xDouble*xDouble, funcParams[l*numberOfFuncCoef + 3]*(xDouble*xDouble*xDouble), funcParams[l*numberOfFuncCoef + 3], funcParams[l*numberOfFuncCoef + 3]*[double](xDouble*xDouble*xDouble))
+								        			end
+
+
 								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
 								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
-								        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
-								        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
-								        				+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
-								        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
+								        				+ funcParams[l*numberOfFuncCoef + 3]*(x*x) + funcParams[l*numberOfFuncCoef + 4]*(x*y)
+								        				+ funcParams[l*numberOfFuncCoef + 5]*(y*y) + funcParams[l*numberOfFuncCoef + 6]*(x*x*x)
+								        				+ funcParams[l*numberOfFuncCoef + 7]*(x*x*y) + funcParams[l*numberOfFuncCoef + 8]*(x*y*y)
+								        				+ funcParams[l*numberOfFuncCoef + 9]*(y*y*y) )
 								        			end
 								        		end
 								        	end

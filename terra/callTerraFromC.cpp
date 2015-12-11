@@ -18,7 +18,7 @@
 
 //to test double precision kernel define this
 //also define USE_5_KERNELS and 
-#define DOUBLE_PRECISION_KERNEL
+#//define DOUBLE_PRECISION_KERNEL
 
 //can be one of the following strings:
 //"gaussian_contains_denormal_numbers"
