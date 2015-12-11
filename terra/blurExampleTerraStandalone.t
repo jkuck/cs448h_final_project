@@ -9,8 +9,8 @@ local C = terralib.includecstring [[
 
 --local boundingBox = 2
 local vectorWidth = 8
-local kernelSize = 19
-local luaNumberOfBasisKernels = -1
+local kernelSize = 23
+local luaNumberOfBasisKernels = 5
 local luaNumberOfFuncParams = 10
 local luaBoundingBox = (kernelSize-1)/2
 local boundingBox = (kernelSize-1)/2
@@ -160,7 +160,6 @@ local function genConvolve(kenelSize)
 									end
 								end									
 
-
 								emit quote
 								for j = -luaBoundingBox, luaBoundingBox +1 do
 							        for i = -luaBoundingBox, luaBoundingBox + 1 do
@@ -168,36 +167,6 @@ local function genConvolve(kenelSize)
 							        	for k = 0, vectorWidth - 1 do
 							        		if testNumberOfBasisKernelsUnknownAtCompile then
 								        		emit quote
---								        			if(x*x ~= xxVal) then
---								        				C.printf("xx differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(x*y ~= xyVal) then
---								        				C.printf("xy differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(y*y ~= yyVal) then
---								        				C.printf("yy differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(x*x*y ~= xxyVal) then
---								        				C.printf("xxy differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(x*y*y ~= xyyVal) then
---								        				C.printf("xx differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(y*y*y ~= yyyVal) then
---								        				C.printf("yyy differs at x=%d, y = %d", x, y)
---								        			end
---
---								        			if(x*x*x ~= xxxVal) then
---								        				C.printf("xxx differs at x=%d, y = %d", x, y)
---								        			end
-
-
-
 		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
 								        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
 								        				+ funcParams[0*numberOfFuncCoef + 3]*xxVal + funcParams[0*numberOfFuncCoef + 4]*xyVal
@@ -207,45 +176,13 @@ local function genConvolve(kenelSize)
 								        		end
 								        		emit quote
 								        			for l = 1, numberOfBasisKernels do 
-								        		--for l = 1, luaNumberOfBasisKernels-1 do 
-								        		--	emit quote
+				
 								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
 								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
 								        				+ funcParams[l*numberOfFuncCoef + 3]*xxVal + funcParams[l*numberOfFuncCoef + 4]*xyVal
 								        				+ funcParams[l*numberOfFuncCoef + 5]*yyVal + funcParams[l*numberOfFuncCoef + 6]*xxxVal
 								        				+ funcParams[l*numberOfFuncCoef + 7]*xxyVal + funcParams[l*numberOfFuncCoef + 8]*xyyVal
 								        				+ funcParams[l*numberOfFuncCoef + 9]*yyyVal)
-
-								        			--if(funcParams[l*numberOfFuncCoef + 3]*x*x ~= funcParams[l*numberOfFuncCoef + 3]*xxVal) then
-								        			--	C.printf("xx differs at x=%d, y = %d, funcParams[l*numberOfFuncCoef + 3]*x*x = %f, funcParams[l*numberOfFuncCoef + 3]*xxVal = %f\n\n", x, y, funcParams[l*numberOfFuncCoef + 3]*x*x, funcParams[l*numberOfFuncCoef + 3]*xxVal)
-								        			--end
-
-								        			--if(funcParams[l*numberOfFuncCoef + 4]*x*y ~= funcParams[l*numberOfFuncCoef + 4]*xyVal) then
-								        			--	C.printf("xy differs at x=%d, y = %d", x, y)
-								        			--end
---
-								        			--if(funcParams[l*numberOfFuncCoef + 5]*yyVal*y*y ~= yyVal) then
-								        			--	C.printf("yy differs at x=%d, y = %d", x, y)
-								        			--end
---
-								        			--if(x*x*y ~= xxyVal) then
-								        			--	C.printf("xxy differs at x=%d, y = %d", x, y)
-								        			--end
---
-								        			--if(x*y*y ~= xyyVal) then
-								        			--	C.printf("xx differs at x=%d, y = %d", x, y)
-								        			--end
---
-								        			--if(y*y*y ~= yyyVal) then
-								        			--	C.printf("yyy differs at x=%d, y = %d", x, y)
-								        			--end
---
-								        			--if(funcParams[l*numberOfFuncCoef + 6]*x*x*x ~= funcParams[l*numberOfFuncCoef + 6]*xxxVal) then
-								        			--	C.printf("xxx differs at x=%d, y = %d", x, y)
-								        			--end
-
-
-
 								        			end
 								        		end
 							        		else
@@ -623,8 +560,8 @@ local terra convolveRefactor(inputImg:&float, inputVar:&float, inputMask:&uint16
 						        	for k = 0, vectorWidth - 1 do
 						        		emit quote
        										curKernelValTemp[k] = newKernelArray[0][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]	
-						        				+ newKernelArray[1][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*([float](x) - [float](imageWidth/2))/[float](imageWidth/2) 
-						        				+ newKernelArray[2][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*([float](y) - [float](imageHeight/2))/[float](imageHeight/2)
+						        				+ newKernelArray[1][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x--trying to figure out chebyshev functions([float](x) - [float](imageWidth/2))/[float](imageWidth/2) 
+						        				+ newKernelArray[2][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y--trying to figure out chebyshev functions([float](y) - [float](imageHeight/2))/[float](imageHeight/2)
 						        				+ newKernelArray[3][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x 
 						        				+ newKernelArray[4][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y
 						        				+ newKernelArray[5][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y 
@@ -1110,9 +1047,9 @@ end
 --local kernelSize25 = genConvolve(25)
 --local kernelSize27 = genConvolve(27)
 
-local kernelSize3 = genConvolve(19)
+local plainConvolve = genConvolve(23)
 
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = kernelSize3})
+terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = plainConvolve})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
