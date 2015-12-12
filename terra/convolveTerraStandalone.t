@@ -1343,7 +1343,7 @@ end
 
 local plainConvolve = genConvolve(23)
 
-terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3  = convolveBasisKernelSeparatelyAtAPoint})
+terralib.saveobj("convolveTerraStandalone.o",{ terraFuncNameInC3  = convolveBasisKernelSeparatelyAtAPoint})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
