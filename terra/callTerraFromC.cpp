@@ -1,8 +1,8 @@
 //To Run: 
 //$ terra convolveTerraStandalone.t
 //$ terra-Linux-x86_64-84bbb0b/bin/terra convolveTerraStandalone.t
-//$ g++ -c callTerraConvolveFromC.cpp.cpp
-//$ g++ convolveTerraStandalone.o callTerraConvolveFromC.cpp.o
+//$ g++ -c callTerraFromC.cpp
+//$ g++ convolveTerraStandalone.o callTerraFromC.o
 //$ ./a.out
 #include "convolveTerraStandalone.h"
 #include <math.h>       /* cos */
