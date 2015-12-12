@@ -1,10 +1,10 @@
-//To Run:
-//$ terra blurExampleTerraStandalone.t
-//$ terra-Linux-x86_64-84bbb0b/bin/terra blurExampleTerraStandalone.t
-//$ g++ -c callTerraFromC.cpp
-//$ g++ blurExampleTerraStandalone.o callTerraFromC.o
+//To Run: 
+//$ terra convolveTerraStandalone.t
+//$ terra-Linux-x86_64-84bbb0b/bin/terra convolveTerraStandalone.t
+//$ g++ -c callTerraConvolveFromC.cpp.cpp
+//$ g++ convolveTerraStandalone.o callTerraConvolveFromC.cpp.o
 //$ ./a.out
-#include "blurExampleTerraStandalone.h"
+#include "convolveTerraStandalone.h"
 #include <math.h>       /* cos */
 #include <stdlib.h>
 #include <stdint.h>
