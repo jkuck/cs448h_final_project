@@ -1341,9 +1341,9 @@ end
 --local kernelSize25 = genConvolve(25)
 --local kernelSize27 = genConvolve(27)
 
+--set kernel size here to avoid segfault when using genConvolve
 local plainConvolve = genConvolve(23)
-
-terralib.saveobj("convolveTerraStandalone.o",{ terraFuncNameInC3  = convolveBasisKernelSeparatelyAtAPoint})
+terralib.saveobj("convolveTerraStandalone.o",{ terraFuncNameInC3  = plainConvolve})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
