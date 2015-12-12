@@ -22,7 +22,7 @@ local luaKernelArea = kernelSize*kernelSize
 local interpDist = 10
 local method = "original"
 
-local testNumberOfBasisKernelsUnknownAtCompile = true
+local testNumberOfBasisKernelsUnknownAtCompile = false
 
 local terra getInfoFromLSST(inputImg:&float, inputVar:&float, inputMask:&uint16,
 							outputImg:&float, outputVar:&float, outputMask:&uint16,
