@@ -11,6 +11,12 @@
 #include <stdio.h>
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 
+//for disabling denormal numbers in OS X
+#include <fenv.h>
+
+//for disabling denormal numbers in Linux
+#include <xmmintrin.h>
+
 
 #define TEST_VS_LSST
 //#define PRINT_CORNERS_OF_OUTPUT_AND_REFERENCE //only define if TEST_VS_LSST is defined
@@ -24,7 +30,7 @@
 //"gaussian_contains_denormal_numbers"
 //"gaussian_denormals_zeroed" 
 //"random" //output will not match LSST, but for checking performance
-#define KERNEL_INFO "gaussian_denormals_zeroed"
+#define KERNEL_INFO "gaussian_contains_denormal_numbers"
 
 //smallest kernel value if gaussian_denormals_zeroed
 #define MIN_KERNEL_VAL pow(10, -30) 
@@ -158,6 +164,14 @@ double kernelDouble(int i, int j, double sigmaX, double sigmaY, double theta){
 
 
 int main(int argc, char *argv[]) {
+
+//disable denormal numbers in OS X
+//    fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+
+//disable denormal numbers in Linux
+//_mm_setcsr( _mm_getcsr() | 0x8040 );
+
+
 //    for(int kernelSize = 3; kernelSize <=27; kernelSize = kernelSize+2){
         int numberOfBasisKernels = 5;
         int numberOfFuncCoef = 10;
@@ -299,7 +313,10 @@ int main(int argc, char *argv[]) {
         float* funcParams = (float*)malloc(5*10*sizeof(float));
         for(int i = 0; i < 5; i++){
             for(int j = 0; j < 10; j++){
-                funcParams[i*10+j] = 1.0f*(i+1) + .001f*(j+1);
+                //old coefficients, might be too similar to eac other
+                //funcParams[i*10+j] = 1.0f*(i+1) + .001f*(j+1);
+                //new coefficients
+                funcParams[i*10+j] = 2.0f + cos(1000.0f*(1.0f + i + (1.0f + j)/11.0f));
             }
         }
     
@@ -340,7 +357,7 @@ int main(int argc, char *argv[]) {
         float* outputReferenceImageArray = (float*)malloc(imageWidth*imageHeight*sizeof(float));
         FILE * outputReferenceImageFile;
         char imageOutputLocation [100];
-        sprintf (imageOutputLocation, "./convolveRawData/lsstOutputLinCombo%dx%dImg.raw", kernelSize, kernelSize);
+        sprintf (imageOutputLocation, "./convolveRawData/newCosineCoef/lsstOutputLinCombo%dx%dImg.raw", kernelSize, kernelSize);
         outputReferenceImageFile = fopen ( imageOutputLocation , "rb" );
         if (outputReferenceImageFile==NULL) {fputs ("File error",stderr); exit (1);}
         // copy the image file into the buffer:
@@ -351,7 +368,7 @@ int main(int argc, char *argv[]) {
         float* outputReferenceVarianceArray = (float*)malloc(imageWidth*imageHeight*sizeof(float));
         FILE * outputReferenceVarianceFile;
         char varianceOutputLocation [100];
-        sprintf (varianceOutputLocation, "./convolveRawData/lsstOutputLinCombo%dx%dVar.raw", kernelSize, kernelSize);
+        sprintf (varianceOutputLocation, "./convolveRawData/newCosineCoef/lsstOutputLinCombo%dx%dVar.raw", kernelSize, kernelSize);
         outputReferenceVarianceFile = fopen ( varianceOutputLocation , "rb" );
         if (outputReferenceVarianceFile==NULL) {fputs ("File error",stderr); exit (1);}
         // copy the variance file into the buffer:
@@ -361,7 +378,7 @@ int main(int argc, char *argv[]) {
         uint16_t* outputReferenceMaskArray = (uint16_t*)malloc(imageWidth*imageHeight*sizeof(uint16_t));
         FILE * outputReferenceMaskFile;
         char maskOutputLocation [100];
-        sprintf (maskOutputLocation, "./convolveRawData/lsstOutputLinCombo%dx%dMask.raw", kernelSize, kernelSize);
+        sprintf (maskOutputLocation, "./convolveRawData/newCosineCoef/lsstOutputLinCombo%dx%dMask.raw", kernelSize, kernelSize);
         outputReferenceMaskFile = fopen ( maskOutputLocation , "rb" );
         if (outputReferenceMaskFile==NULL) {fputs ("File error",stderr); exit (1);}
         // copy the file into the buffer:
@@ -403,6 +420,10 @@ int main(int argc, char *argv[]) {
             terraFuncNameInC3(inputImg, inputVar, inputMask, outputImg, outputVar, outputMask,
                             imageWidth, imageHeight, kernelArray, funcParams, numberOfBasisKernels,         
                             kernelSize, kernelSize, numberOfFuncCoef);
+        
+//            terraFuncNameInC5(inputImg, inputVar, inputMask, outputImg, outputVar, outputMask,
+//                            imageWidth, imageHeight, kernelArray, funcParams, numberOfBasisKernels,         
+//                            kernelSize, kernelSize, numberOfFuncCoef);
         
             clock_t t2 = clock();
             printf("computation took: %f ms, kernelSize = %d\n",  (float)(t2-t1)/1000.0, kernelSize);

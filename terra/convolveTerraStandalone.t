@@ -29,7 +29,7 @@ local terra getInfoFromLSST(inputImg:&float, inputVar:&float, inputMask:&uint16,
                     		imageWidth:int, imageHeight:int, kernelArray:&&float , 
                     		funcParams:&float, numberOfBasisKernels:int,
 							kernelWidth:int, kernelHeight:int, numberOfFuncCoef:int)
-	C.printf("received function paramters in Terra:\n")
+	C.printf("received function parameters in Terra:\n")
 	for i = 0, numberOfBasisKernels do
 		C.printf("function %d:", i)
 		for j = 0, numberOfFuncCoef do
@@ -174,7 +174,7 @@ local function genConvolve(kenelSize)
 	                    		imageWidth:int, imageHeight:int, kernelArray:&&float, 
 	                    		funcParams:&float, numberOfBasisKernels:int,
 								kernelWidth:int, kernelHeight:int, numberOfFuncCoef:int)
---		C.printf("Begin Terra function\n")
+		C.printf("Begin Terra function!!\n")
 --		C.printf("imageWidth = %d, imageHeight = %d, numberOfBasisKernels = %d, kernelWidth = %d, kernelHeight = %d, numberOfFuncCoef = %d\n", imageWidth,
 --			imageHeight, numberOfBasisKernels, kernelWidth, kernelHeight, numberOfFuncCoef)
 		escape
@@ -190,20 +190,22 @@ local function genConvolve(kenelSize)
 			local xxyVal = symbol()
 			local xyyVal = symbol()
 			local yyyVal = symbol()
+			local cur_KernelWeights_Array = symbol()
+
 			if testNumberOfBasisKernelsUnknownAtCompile then
-				emit quote
-					var [xxVal]  : float
-					var [xyVal]  : float
-					var [yyVal]  : float
-					var [xxxVal] : float
-					var [xxyVal] : float
-					var [xyyVal] : float
-					var [yyyVal] : float										
+				emit quote			
+					var [cur_KernelWeights_Array] : &float = [&float](C.malloc(sizeof(float)*numberOfBasisKernels))
 				end
 			end
 
 
 			emit quote
+				var arrayOfCurPolynomialVecs : vector(float, vectorWidth)[luaNumberOfBasisKernels]
+				
+				--arrayOfCurPolynomials[i*vectorWidth + j] contains the polynomial weight
+				--of the ith basis kernel at location j in its vector
+				var arrayOfCurPolynomials : float[luaNumberOfBasisKernels*vectorWidth]
+
 				var [boundingBox] = (kernelWidth - 1)/2
 
 				var t1 = C.clock()
@@ -238,66 +240,97 @@ local function genConvolve(kenelSize)
 
 								if testNumberOfBasisKernelsUnknownAtCompile then
 									emit quote
-										xxVal = [double](x)*[double](x)
-										xyVal = [double](x)*[double](y)
-										yyVal = [double](y)*[double](y)
-										xxxVal  = [double](x)*[double](x)*[double](x)
-										xxyVal  = [double](x)*[double](x)*[double](y)
-										xyyVal  = [double](x)*[double](y)*[double](y)
-										yyyVal  = [double](y)*[double](y)*[double](y)	
+								        for l = 0, numberOfBasisKernels do 
+
+											cur_KernelWeights_Array[l] = (funcParams[l*numberOfFuncCoef + 0]
+								        			+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
+								        			+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
+								        			+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
+								        			+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
+								        			+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
+										end
+
 									end
-								end									
+								end		
+									--arrayOfCurPolynomials[i*vectorWidth + j] contains the polynomial weight
+									--of the ith basis kernel at location j in its vector
+
+										for l = 0, luaNumberOfBasisKernels-1 do 
+											for k = 0, vectorWidth-1 do
+												emit quote
+													arrayOfCurPolynomials[l*vectorWidth + k] = (funcParams[l*numberOfFuncCoef + 0]
+								        				+ funcParams[l*numberOfFuncCoef + 1]*(x+k) + funcParams[l*numberOfFuncCoef + 2]*y
+								        				+ funcParams[l*numberOfFuncCoef + 3]*(x+k)*(x+k) + funcParams[l*numberOfFuncCoef + 4]*(x+k)*y
+								        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*(x+k)*(x+k)*(x+k)
+								        				+ funcParams[l*numberOfFuncCoef + 7]*(x+k)*(x+k)*y + funcParams[l*numberOfFuncCoef + 8]*(x+k)*y*y
+								        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
+												end
+											end
+											emit quote
+												arrayOfCurPolynomialVecs[l] = @[&vector(float,vectorWidth)](&arrayOfCurPolynomials[l*vectorWidth])
+											end
+										end
 
 								emit quote
 								for j = -luaBoundingBox, luaBoundingBox +1 do
 							        for i = -luaBoundingBox, luaBoundingBox + 1 do
 							        escape
-							        	for k = 0, vectorWidth - 1 do
-							        		if testNumberOfBasisKernelsUnknownAtCompile then
-								        		emit quote
-		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
-								        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
-								        				+ funcParams[0*numberOfFuncCoef + 3]*xxVal + funcParams[0*numberOfFuncCoef + 4]*xyVal
-								        				+ funcParams[0*numberOfFuncCoef + 5]*yyVal + funcParams[0*numberOfFuncCoef + 6]*xxxVal
-								        				+ funcParams[0*numberOfFuncCoef + 7]*xxyVal + funcParams[0*numberOfFuncCoef + 8]*xyyVal
-								        				+ funcParams[0*numberOfFuncCoef + 9]*yyyVal)	
-								        		end
-								        		emit quote
-								        			for l = 1, numberOfBasisKernels do 
-				
-								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
-								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
-								        				+ funcParams[l*numberOfFuncCoef + 3]*xxVal + funcParams[l*numberOfFuncCoef + 4]*xyVal
-								        				+ funcParams[l*numberOfFuncCoef + 5]*yyVal + funcParams[l*numberOfFuncCoef + 6]*xxxVal
-								        				+ funcParams[l*numberOfFuncCoef + 7]*xxyVal + funcParams[l*numberOfFuncCoef + 8]*xyyVal
-								        				+ funcParams[l*numberOfFuncCoef + 9]*yyyVal)
-								        			end
-								        		end
-							        		else
-								        		emit quote
-		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
-								        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
-								        				+ funcParams[0*numberOfFuncCoef + 3]*x*x + funcParams[0*numberOfFuncCoef + 4]*x*y
-								        				+ funcParams[0*numberOfFuncCoef + 5]*y*y + funcParams[0*numberOfFuncCoef + 6]*x*x*x
-								        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
-								        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
-								        		end
-								        		--emit quote
-								        		--	for l = 1, numberOfBasisKernels do 
-								        		for l = 1, luaNumberOfBasisKernels-1 do 
-								        			emit quote
-								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
-								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
-								        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
-								        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
-								        				+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
-								        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y)
-								        			end
-								        		end
-								        	end
-							        	end
+--							        	for k = 0, vectorWidth - 1 do
+--							        		if testNumberOfBasisKernelsUnknownAtCompile then
+--								        		emit quote
+--		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*cur_KernelWeights_Array[0]	
+--								        		end
+--								        		emit quote
+--								        			for l = 1, numberOfBasisKernels do 
+--				
+--								        			curKernelValTemp[k] = curKernelValTemp[k] 
+--								        				+ kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*cur_KernelWeights_Array[l]
+--								        			end
+--								        		end
+--							        		else
+--								        		emit quote
+--		       										curKernelValTemp[k] = kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[0*numberOfFuncCoef + 0]
+--								        				+ funcParams[0*numberOfFuncCoef + 1]*x + funcParams[0*numberOfFuncCoef + 2]*y
+--								        	--			)
+--								        				+ funcParams[0*numberOfFuncCoef + 3]*x*x + funcParams[0*numberOfFuncCoef + 4]*x*y
+--								        				+ funcParams[0*numberOfFuncCoef + 5]*y*y + funcParams[0*numberOfFuncCoef + 6]*x*x*x
+--								        				+ funcParams[0*numberOfFuncCoef + 7]*x*x*y + funcParams[0*numberOfFuncCoef + 8]*x*y*y
+--								        				+ funcParams[0*numberOfFuncCoef + 9]*y*y*y)	
+--								        		end
+--								        		--emit quote
+--								        		--	for l = 1, numberOfBasisKernels do 
+--								        		for l = 1, luaNumberOfBasisKernels-1 do 
+--								        			emit quote
+--								        			curKernelValTemp[k] = curKernelValTemp[k] + kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)]*(funcParams[l*numberOfFuncCoef + 0]
+--								        				+ funcParams[l*numberOfFuncCoef + 1]*x + funcParams[l*numberOfFuncCoef + 2]*y
+--								        	--			)
+--								        				+ funcParams[l*numberOfFuncCoef + 3]*x*x + funcParams[l*numberOfFuncCoef + 4]*x*y
+--								        				+ funcParams[l*numberOfFuncCoef + 5]*y*y + funcParams[l*numberOfFuncCoef + 6]*x*x*x
+--								        				+ funcParams[l*numberOfFuncCoef + 7]*x*x*y + funcParams[l*numberOfFuncCoef + 8]*x*y*y
+--								        				+ funcParams[l*numberOfFuncCoef + 9]*y*y*y
+--								        				)
+--								        			end
+--								        		end
+--								        	end
+--							        	end
+
 							        	emit quote
-								            curKernelVal = @[&vector(float,vectorWidth)](&curKernelValTemp[0])
+							        		curKernelVal = [vector(float,vectorWidth)](kernelArray[0][(j+boundingBox)*kernelWidth+(i+boundingBox)])
+							        		curKernelVal = curKernelVal*arrayOfCurPolynomialVecs[0]
+							        	end
+
+							        	for l = 1, luaNumberOfBasisKernels-1 do
+							        		emit quote
+							        			var curBasisKernelVal : vector(float,vectorWidth) = [vector(float,vectorWidth)](kernelArray[l][(j+boundingBox)*kernelWidth+(i+boundingBox)])
+							        			curBasisKernelVal = curBasisKernelVal*arrayOfCurPolynomialVecs[l]
+							        			curKernelVal = curKernelVal + curBasisKernelVal
+							        		end
+							        	end
+
+							        	emit quote
+
+
+								            --curKernelVal = @[&vector(float,vectorWidth)](&curKernelValTemp[0])
 
 								            var curImInVec = @[&vector(float,vectorWidth)](&inputImg[(y+j)*imageWidth + x+i])
 								            var curVarInVec = @[&vector(float,vectorWidth)](&inputVar[(y+j)*imageWidth + x+i])
@@ -390,6 +423,11 @@ local function genConvolve(kenelSize)
 
 
 
+			end
+			if testNumberOfBasisKernelsUnknownAtCompile then
+				emit quote
+					C.free(cur_KernelWeights_Array)
+				end	
 			end
 		end
 	end
@@ -856,13 +894,13 @@ local terra convolveRefactor(inputImg:&float, inputVar:&float, inputMask:&uint16
        										curKernelValTemp[k] = newKernelArray[0][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]	
 						        				+ newKernelArray[1][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x--trying to figure out chebyshev functions([float](x) - [float](imageWidth/2))/[float](imageWidth/2) 
 						        				+ newKernelArray[2][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y--trying to figure out chebyshev functions([float](y) - [float](imageHeight/2))/[float](imageHeight/2)
-						        				+ newKernelArray[3][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x 
-						        				+ newKernelArray[4][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y
-						        				+ newKernelArray[5][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y 
-						        				+ newKernelArray[6][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*x
-						        				+ newKernelArray[7][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*y 
-						        				+ newKernelArray[8][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y*y
-						        				+ newKernelArray[9][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y*y
+						        				--+ newKernelArray[3][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x 
+						        				--+ newKernelArray[4][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y
+						        				--+ newKernelArray[5][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y 
+						        				--+ newKernelArray[6][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*x
+						        				--+ newKernelArray[7][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*x*y 
+						        				--+ newKernelArray[8][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*x*y*y
+						        				--+ newKernelArray[9][(j+luaBoundingBox)*kernelWidth+(i+luaBoundingBox)]*y*y*y
 						        		end
 						        	end
 						        	emit quote
@@ -1328,7 +1366,7 @@ end
 
 
 
---local kernelSize5 = genConvolve(5)
+local kernelSize5 = genConvolve(kernelSize)
 --local kernelSize7 = genConvolve(7)
 --local kernelSize9 = genConvolve(9)
 --local kernelSize11 = genConvolve(11)
@@ -1341,9 +1379,8 @@ end
 --local kernelSize25 = genConvolve(25)
 --local kernelSize27 = genConvolve(27)
 
---set kernel size here to avoid segfault when using genConvolve
-local plainConvolve = genConvolve(19)
-terralib.saveobj("convolveTerraStandalone.o",{ terraFuncNameInC3  = plainConvolve})
+local plainConvolve = genConvolve(kernelSize)
+terralib.saveobj("convolveTerraStandalone.o",{ terraFuncNameInC3  = plainConvolve, terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone5.o",{ terraFuncNameInC5  = kernelSize5})
 --terralib.saveobj("blurExampleTerraStandalone.o",{ terraFuncNameInC3 = kernelSize3,
 --												  terraFuncNameInC5 = kernelSize5})
